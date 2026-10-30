@@ -8,10 +8,10 @@
 
 | 구분 | 상태 |
 |---|---|
-| 티어 분류(F1~V2)와 17개 변형 명세 | 설계 완료. **어떤 운영 환경에도 미적용** |
+| 티어 분류(F1~V2)와 17개 변형 명세 | 설계 완료. default 프로필의 `model_map` 에 적용됨(17경로, 기본 `M-Haiku-Balanced`). 다른 프로필은 미적용 |
 | 중립 정책(`core/policy`) | 작성 완료. `tools/check_core_neutral.py`로 종속 용어 없음을 검사 |
 | Hermes 어댑터 | 얇은 스킬, `model_map` 내보내기(core 판정기 사용), 설치된 Hermes 검사 완료. 설치본 검사 9개 통과(추론 호출 아님) |
-| 신규 17개 경로의 실호출 검증 | **미실시** (옵션 호환, 도구 왕복, 품질, 비용, 지연) |
+| 17개 경로의 실호출 검증 | 17경로 전수 통과(응답·도구 왕복·구조화 출력·시각 판독). 형식 편차 2건은 `docs/validation/live-probe-plan.md` 에 기록. 근거 `docs/validation/live-probes-20261030.json`. 품질·비용·지연은 **미측정** |
 | 전용 결정 모델(Jev 등) 하이브리드 라우팅 | 설계만 있음. 정확도와 절감 효과는 **미측정** |
 | 하드 규칙 판정기 (`core/eligibility`) | 구현 완료. 단위 테스트 76개 통과(판정기 63 + Hermes 내보내기 13), 규칙을 일부러 망가뜨린 7가지 변형을 모두 검출. Hermes 어댑터가 사용함 |
 | 두 번째 어댑터 | **없음**. 그러므로 중립성은 아직 한 환경에서만 확인된 상태 |
@@ -54,6 +54,12 @@ python adapters/hermes/export_model_map.py
 python adapters/hermes/export_model_map.py --check
 python adapters/hermes/validate_installed.py --hermes-home <HERMES_HOME 경로>
 
+# model_map 적용: 검증만 / config.yaml 에 들어갈 블록 확인 / 백업 후 실제 적용 / 적용+재시작
+python adapters/hermes/apply_model_map.py
+python adapters/hermes/apply_model_map.py --print-yaml
+python adapters/hermes/apply_model_map.py --apply
+python adapters/hermes/apply_model_map.py --apply --restart
+
 # core/ 에 특정 에이전트 종속 용어가 없는지 검사
 python tools/check_core_neutral.py
 
@@ -87,6 +93,17 @@ d.status, d.eligible, d.rejected   # 상태, 통과 경로, 경로별 거부 사
 ```
 
 쓰기 범위가 겹치는 작업은 `plan_write_stages`로 단계를 나눕니다. 저장소 전체(`.`)를 쓰는 작업은 다른 모든 쓰기 작업과 충돌로 취급합니다.
+
+## model_map 적용
+
+`adapters/hermes/model-map-proposal.json`(17경로)을 설치된 Hermes 의 `delegation.backends.model_map` 에 넣는 순서입니다. `apply_model_map.py` 는 제안 파일을 먼저 검증하고, `config.yaml` 을 백업한 뒤 `hermes config set` 을 두 번(경로 목록, 기본 backend) 실행하고, 마지막에 설정을 다시 읽어 확인합니다. 표준 라이브러리만 쓰며 `--apply` 없이는 아무것도 바꾸지 않습니다.
+
+1. `python adapters/hermes/export_model_map.py --check` — 제안 파일이 명세와 일치하는지 확인
+2. `python adapters/hermes/apply_model_map.py` — 17경로·기본값·이름 규칙·추론 강도 검사(쓰기 없음)
+3. `python adapters/hermes/apply_model_map.py --apply` — 백업 후 적용, read-back 확인까지
+4. `--apply --restart` 를 붙이면 재시작까지 한 번에 처리합니다(진행 중인 대화·cron·백그라운드 위임이 끊기므로 y/N 확인을 받습니다). 따로 할 때는 `hermes gateway restart -y` 를 실행하고, **새 세션**에서 `delegate_task` 의 `option` 목록에 17개 이름이 보이는지 확인하십시오.
+
+설정은 프로필 단위이므로 다른 프로필에 넣을 때는 `-p <프로필>` 을 붙입니다. 되돌릴 때는 스크립트가 출력한 백업 파일을 `config.yaml` 로 복사하고 다시 재시작합니다. 17개 경로의 실호출 검증은 아직 하지 않았습니다.
 
 ## 핵심 원칙
 
