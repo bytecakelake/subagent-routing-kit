@@ -4,7 +4,7 @@
 
 라이선스: Apache-2.0 (`LICENSE`)
 
-## 상태: v0.2 (구조 분리 직후)
+## 상태: v0.3 (하드 규칙 판정기 추가)
 
 | 구분 | 상태 |
 |---|---|
@@ -13,7 +13,7 @@
 | Hermes 어댑터 | 얇은 스킬 + 동기화 스크립트 완료. 변형 생성기(`build_variants.py`)는 이전한 그대로이며 **절대 경로에 의존** |
 | 신규 17개 경로의 실호출 검증 | **미실시** (옵션 호환, 도구 왕복, 품질, 비용, 지연) |
 | 전용 결정 모델(Jev 등) 하이브리드 라우팅 | 설계만 있음. 정확도와 절감 효과는 **미측정** |
-| 하드 규칙 판정기, 단위 테스트 | **미구현** |
+| 하드 규칙 판정기 (`core/eligibility`) | 구현 완료. 단위 테스트 63개 통과, 규칙을 일부러 망가뜨린 7가지 변형을 모두 검출. 아직 어떤 어댑터에도 **연결되지 않음** |
 | 두 번째 어댑터 | **없음**. 그러므로 중립성은 아직 한 환경에서만 확인된 상태 |
 
 역할 배정은 운영 가설이며 측정된 성능 순위가 아닙니다. 모델 가격과 외부 평가 지표는 2026-10-30 시점의 OpenRouter 공개 메타데이터이며 변경될 수 있습니다.
@@ -24,10 +24,12 @@
 core/                         에이전트 중립 (종속 용어 금지, 자동 검사)
   spec/                       변형 명세, 티어 분류, 비용 데이터
   policy/                     운영 정책, 라우팅 정책, 작업 계약 양식
-  catalog/                    OpenRouter 엔드포인트 조회 도구
+  catalog/                    OpenRouter 엔드포인트 조회, 모델 능력 수집
+  eligibility/                하드 규칙 판정기 (경로 자격, 쓰기 범위 충돌)
 adapters/
   hermes/                     Hermes용 스킬, model_map 제안, 동기화 스크립트, 변형 생성기
 docs/                         설계, 조사 근거, 검증 기록
+tests/                        단위 테스트 (unittest)
 tools/                        저장소 검사 스크립트
 ```
 
@@ -41,6 +43,12 @@ tools/                        저장소 검사 스크립트
 # 모델 엔드포인트(가격, 지원 파라미터) 조회. 인증 키 불필요
 python core/catalog/inspect_endpoints.py --from-specs core/spec/variant-specs.json --out endpoints.json
 
+# 단위 테스트 (pytest 불필요)
+python -m unittest discover -s tests -t .
+
+# 모델 능력 다시 수집 (공개 API). 수집 후 테스트로 명세와의 일치를 확인
+python core/catalog/build_capabilities.py --specs core/spec/variant-specs.json --out core/spec/model-capabilities.json
+
 # core/ 에 특정 에이전트 종속 용어가 없는지 검사
 python tools/check_core_neutral.py
 
@@ -50,6 +58,30 @@ python adapters/hermes/sync_skill.py --check
 ```
 
 Hermes에서는 `adapters/hermes/skill/subagent-orchestration/`을 스킬 폴더에 설치합니다. 설치된 사본은 저장소와 자동으로 동기화되지 않습니다.
+
+## 하드 규칙 판정기
+
+`core/eligibility`는 경로가 자격을 갖췄는지 코드로 판정합니다. 부모 판단이나 결정 모델 추천으로 우회할 수 없습니다.
+
+| 규칙 | 거부 조건 |
+|---|---|
+| 등록 | 어댑터가 알려 준 등록 경로 목록에 없음 |
+| 추론 강도 | 명시하지 않음, 모델이 공개한 목록에 없음, 목록이 비공개인 모델에 강도 지정, 추론 필수 모델 또는 추론 미지원 모델에 `none` |
+| 속도 | 명시하지 않음, 검증된 단계(`normal`) 밖 |
+| 무료→유료 | 무료 경로의 폴백이 유료이거나 알 수 없음 |
+| 입력 | 필요한 모달리티·도구 미지원, 컨텍스트 초과, 장문 할증 구간(명시적 허용 시 통과) |
+
+입력 길이를 모르면 거부하지 않고 경고합니다. 위험 신호(`high_risk`)는 독립 검토 플래그를 **추가**할 뿐 어떤 규칙도 풀지 않으며, 승인이 필요한 작업은 후보가 있어도 `needs_approval`입니다. 후보를 거르는 데까지가 이 모듈의 몫이고, 남은 후보 중 선택과 모호한 건의 처리는 부모의 몫입니다.
+
+```python
+from core.eligibility import Task, evaluate, load_capabilities, routes_from_specs
+caps = load_capabilities("core/spec/model-capabilities.json")
+routes = routes_from_specs("core/spec/variant-specs.json")
+d = evaluate(Task("t1", input_tokens=150_000), routes, caps, registered=[r.name for r in routes])
+d.status, d.eligible, d.rejected   # 상태, 통과 경로, 경로별 거부 사유
+```
+
+쓰기 범위가 겹치는 작업은 `plan_write_stages`로 단계를 나눕니다. 저장소 전체(`.`)를 쓰는 작업은 다른 모든 쓰기 작업과 충돌로 취급합니다.
 
 ## 핵심 원칙
 
@@ -64,4 +96,6 @@ Hermes에서는 `adapters/hermes/skill/subagent-orchestration/`을 스킬 폴더
 - 가격 스냅샷(`openrouter-models*.json`, 각 1.2MB)은 저장소에 포함하지 않았습니다. 필요하면 OpenRouter 모델 API에서 다시 받으십시오.
 - `core/spec/`의 가격과 지원 옵션은 수집 시점의 값입니다. 사용 전에 다시 확인하십시오.
 - 설치된 `advanced-delegation` 플러그인의 `model_map`은 provider, model, base_url, api_key, api_mode, reasoning_effort, service_tier, fallback_providers만 전달합니다. 그 밖의 라우터 옵션은 서브에이전트 경로에서 쓸 수 없다고 가정합니다.
+- 판정기가 쓰는 모델 능력(`model-capabilities.json`)은 수집 시점(2026-10-30)의 공개 메타데이터입니다. 모델·가격·지원 옵션은 바뀌므로 사용 전에 다시 수집하십시오.
+- 판정기는 아직 Hermes 어댑터의 `build_variants.py`에 연결되지 않았습니다. 그 파일은 같은 규칙을 자체 코드로 중복 구현하고 있습니다.
 - `docs/` 안의 일부 문서는 이전 경로(`/workspace/docs/subagent-rebuild/...`)를 언급합니다. 정리 전입니다.

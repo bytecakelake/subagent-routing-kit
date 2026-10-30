@@ -66,4 +66,5 @@ docs/                      설계·근거·검증 기록
 
 - 2026-10-30: 저장소 이름을 `subagent-routing-kit`으로 확정, Apache-2.0 `LICENSE` 원문 추가(공식 원문과 크기·줄 수 일치 확인).
 - 2026-10-30: 이전 작업 순서 1~3 완료. 중립 파일과 Hermes 전용 파일 분리(`git mv`), 정책 본문을 `core/policy/`로 추출, 스킬은 얇은 어댑터로 축소(`sync_skill.py`로 사본 동기화), `core/catalog/inspect_endpoints.py`를 CLI로 일반화.
-- 남은 작업: 순서 4(하드 규칙 판정기와 단위 테스트), 순서 3의 `build_variants.py` 분리, 순서 5(두 번째 어댑터 검증). 이 세 가지가 끝나기 전에는 "범용"이라고 주장하지 않는다.
+- 2026-10-30: 순서 4 완료. `core/eligibility`(하드 규칙 판정기)와 `core/catalog/build_capabilities.py`(모델 능력 수집) 구현, 단위 테스트 63개 통과. 규칙을 일부러 망가뜨린 변형 7개를 모두 검출함. 구현 중 쓰기 범위가 저장소 전체(`.`)인 작업이 충돌로 판정되지 않던 결함을 발견해 수정함.
+- 남은 작업: 순서 3의 `build_variants.py` 분리(Hermes 어댑터가 중복 구현한 규칙을 `core/eligibility`로 대체), 순서 5(두 번째 어댑터 검증). 이 두 가지가 끝나기 전에는 "범용"이라고 주장하지 않는다.

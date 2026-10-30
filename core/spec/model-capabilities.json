@@ -1,0 +1,188 @@
+{
+  "collected_at": "2026-10-30",
+  "models": {
+    "anthropic/claude-haiku-5.5": {
+      "context_tokens": 1000000,
+      "free": false,
+      "input_modalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "long_context_surcharge_tokens": 100000,
+      "reasoning_mandatory": false,
+      "supported_efforts": [
+        "max",
+        "xhigh",
+        "high",
+        "medium",
+        "low",
+        "none"
+      ],
+      "supports_reasoning": true,
+      "supports_tools": true
+    },
+    "anthropic/claude-sonnet-5.5": {
+      "context_tokens": 1000000,
+      "free": false,
+      "input_modalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "long_context_surcharge_tokens": null,
+      "reasoning_mandatory": true,
+      "supported_efforts": [
+        "max",
+        "xhigh",
+        "high",
+        "medium",
+        "low"
+      ],
+      "supports_reasoning": true,
+      "supports_tools": true
+    },
+    "deepseek/deepseek-v4-pro": {
+      "context_tokens": 1048576,
+      "free": false,
+      "input_modalities": [
+        "text"
+      ],
+      "long_context_surcharge_tokens": null,
+      "reasoning_mandatory": false,
+      "supported_efforts": [
+        "xhigh",
+        "high",
+        "none"
+      ],
+      "supports_reasoning": true,
+      "supports_tools": true
+    },
+    "google/gemini-4-argon": {
+      "context_tokens": 1048576,
+      "free": false,
+      "input_modalities": [
+        "audio",
+        "file",
+        "image",
+        "text",
+        "video"
+      ],
+      "long_context_surcharge_tokens": null,
+      "reasoning_mandatory": true,
+      "supported_efforts": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "supports_reasoning": true,
+      "supports_tools": true
+    },
+    "nvidia/nemotron-3.5-super-vl:free": {
+      "context_tokens": 1000000,
+      "free": true,
+      "input_modalities": [
+        "image",
+        "text",
+        "video"
+      ],
+      "long_context_surcharge_tokens": null,
+      "reasoning_mandatory": false,
+      "supported_efforts": null,
+      "supports_reasoning": true,
+      "supports_tools": true
+    },
+    "openai/gpt-6.1-sol": {
+      "context_tokens": 1050000,
+      "free": false,
+      "input_modalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "long_context_surcharge_tokens": 272000,
+      "reasoning_mandatory": true,
+      "supported_efforts": [
+        "max",
+        "xhigh",
+        "high",
+        "medium",
+        "low"
+      ],
+      "supports_reasoning": true,
+      "supports_tools": true
+    },
+    "openai/gpt-6.1-terra": {
+      "context_tokens": 1050000,
+      "free": false,
+      "input_modalities": [
+        "file",
+        "image",
+        "text"
+      ],
+      "long_context_surcharge_tokens": 272000,
+      "reasoning_mandatory": false,
+      "supported_efforts": [
+        "max",
+        "xhigh",
+        "high",
+        "medium",
+        "low",
+        "none"
+      ],
+      "supports_reasoning": true,
+      "supports_tools": true
+    },
+    "qwen/qwen3.8-flash": {
+      "context_tokens": 1000000,
+      "free": false,
+      "input_modalities": [
+        "image",
+        "text",
+        "video"
+      ],
+      "long_context_surcharge_tokens": null,
+      "reasoning_mandatory": false,
+      "supported_efforts": null,
+      "supports_reasoning": true,
+      "supports_tools": true
+    },
+    "xiaomi/mimo-v2.6-flash": {
+      "context_tokens": 1050000,
+      "free": false,
+      "input_modalities": [
+        "audio",
+        "image",
+        "text",
+        "video"
+      ],
+      "long_context_surcharge_tokens": null,
+      "reasoning_mandatory": false,
+      "supported_efforts": null,
+      "supports_reasoning": true,
+      "supports_tools": true
+    },
+    "z-ai/glm-5.3-flash": {
+      "context_tokens": 1048576,
+      "free": false,
+      "input_modalities": [
+        "image",
+        "text",
+        "video"
+      ],
+      "long_context_surcharge_tokens": null,
+      "reasoning_mandatory": true,
+      "supported_efforts": [
+        "max",
+        "high",
+        "low"
+      ],
+      "supports_reasoning": true,
+      "supports_tools": true
+    }
+  },
+  "schema": 1,
+  "source": {
+    "url": "https://openrouter.ai/api/v1/models"
+  }
+}
