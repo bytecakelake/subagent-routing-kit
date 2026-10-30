@@ -25,14 +25,14 @@ class Export(unittest.TestCase):
     def test_description_states_effort_speed_and_prohibitions(self):
         s = SPECS[0]
         d = E.describe(s)
-        self.assertIn(f"추론={s['reasoning_effort']}", d)
-        self.assertIn(f"속도={s['service_tier']}", d)
-        self.assertIn("사용 금지:", d)
-        self.assertIn("실측 전", d)
+        self.assertIn(f"reasoning={s['reasoning_effort']}", d)
+        self.assertIn(f"speed={s['service_tier']}", d)
+        self.assertIn("Avoid:", d)
+        self.assertIn("unmeasured", d)
 
     def test_measured_latency_is_reported_as_measured(self):
         s = dict(SPECS[0], latency_measured=True)
-        self.assertNotIn("실측 전", E.describe(s))
+        self.assertNotIn("unmeasured", E.describe(s))
 
     def test_default_route_is_declared(self):
         self.assertIn(E.DEFAULT_ROUTE, [s["name"] for s in SPECS])

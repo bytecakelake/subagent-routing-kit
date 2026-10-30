@@ -28,9 +28,9 @@ OUT = ROOT / "adapters" / "hermes" / "model-map-proposal.json"
 
 
 def describe(s):
-    measured = "실측" if s.get("latency_measured") else "실측 전"
-    return (f"{s['use_when']}. 사용 금지: {s['avoid_when']}. "
-            f"추론={s['reasoning_effort']}; 속도={s['service_tier']}({s['latency_intent']}, {measured}).")
+    measured = "measured" if s.get("latency_measured") else "unmeasured"
+    return (f"{s['use_when']}. Avoid: {s['avoid_when']}. "
+            f"reasoning={s['reasoning_effort']}; speed={s['service_tier']}({s['latency_intent']}, {measured}).")
 
 
 def build_options(specs):
