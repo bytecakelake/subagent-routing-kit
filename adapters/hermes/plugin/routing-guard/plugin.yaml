@@ -1,0 +1,15 @@
+name: routing-guard
+label: Routing Guard
+kind: standalone
+version: 0.1.0
+author: BCL
+description: >
+  Checks every delegate_task route against the hard rules before the spawn:
+  registered route, explicit and advertised reasoning effort, verified speed
+  tier, free-to-paid fallback, modalities, tool support and context limits.
+  A violation blocks the call with the reason and the eligible alternatives.
+  The verdict is code, not a model recommendation. Needs a Hermes core with
+  the pre_tool_call hook and the advanced-delegation model_map backend.
+requires_hermes: ">=0.22.5"
+provides_tools: []
+provides_hooks: [pre_tool_call]

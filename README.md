@@ -13,7 +13,7 @@
 | Hermes 어댑터 | 얇은 스킬, `model_map` 내보내기(core 판정기 사용), 설치된 Hermes 검사 완료. 설치본 검사 9개 통과(추론 호출 아님) |
 | 17개 경로의 실호출 검증 | 17경로 전수 통과(응답·도구 왕복·구조화 출력·시각 판독). 형식 편차 2건은 `docs/validation/live-probe-plan.md` 에 기록. 근거 `docs/validation/live-probes-20261030.json`. 품질·비용·지연은 **미측정** |
 | 전용 결정 모델(Jev 등) 하이브리드 라우팅 | 설계만 있음. 정확도와 절감 효과는 **미측정** |
-| 하드 규칙 판정기 (`core/eligibility`) | 구현 완료. 단위 테스트 76개 통과(판정기 63 + Hermes 내보내기 13), 규칙을 일부러 망가뜨린 7가지 변형을 모두 검출. Hermes 어댑터가 사용함 |
+| 하드 규칙 판정기 (`core/eligibility`) | 구현 완료. **런타임 연결 플러그인** `adapters/hermes/plugin/routing-guard` 가 `delegate_task` 실행 전에 위반 경로를 차단. 테스트 102개 통과(판정기·가드·내보내기 포함) |
 | 두 번째 어댑터 | **없음**. 그러므로 중립성은 아직 한 환경에서만 확인된 상태 |
 
 역할 배정은 운영 가설이며 측정된 성능 순위가 아닙니다. 모델 가격과 외부 평가 지표는 2026-10-30 시점의 OpenRouter 공개 메타데이터이며 변경될 수 있습니다.
@@ -66,6 +66,10 @@ python tools/check_core_neutral.py
 # Hermes 스킬 사본을 core/policy 와 맞추기 / 일치 여부만 검사
 python adapters/hermes/sync_skill.py
 python adapters/hermes/sync_skill.py --check
+
+# routing-guard 플러그인의 판정기·능력 사본을 core 와 맞추기 / 일치 여부만 검사
+python adapters/hermes/sync_plugin.py
+python adapters/hermes/sync_plugin.py --check
 ```
 
 Hermes에서는 `adapters/hermes/skill/subagent-orchestration/`을 스킬 폴더에 설치합니다. 설치된 사본은 저장소와 자동으로 동기화되지 않습니다.
@@ -103,7 +107,17 @@ d.status, d.eligible, d.rejected   # 상태, 통과 경로, 경로별 거부 사
 3. `python adapters/hermes/apply_model_map.py --apply` — 백업 후 적용, read-back 확인까지
 4. `--apply --restart` 를 붙이면 재시작까지 한 번에 처리합니다(진행 중인 대화·cron·백그라운드 위임이 끊기므로 y/N 확인을 받습니다). 따로 할 때는 `hermes gateway restart -y` 를 실행하고, **새 세션**에서 `delegate_task` 의 `option` 목록에 17개 이름이 보이는지 확인하십시오.
 
-설정은 프로필 단위이므로 다른 프로필에 넣을 때는 `-p <프로필>` 을 붙입니다. 되돌릴 때는 스크립트가 출력한 백업 파일을 `config.yaml` 로 복사하고 다시 재시작합니다. 17개 경로의 실호출 검증은 아직 하지 않았습니다.
+설정은 프로필 단위이므로 다른 프로필에 넣을 때는 `-p <프로필>` 을 붙입니다. 되돌릴 때는 스크립트가 출력한 백업 파일을 `config.yaml` 로 복사하고 다시 재시작합니다. 17개 경로의 실호출 검증 결과는 `docs/validation/live-probe-plan.md` 에 있습니다.
+
+## 런타임 판정기 (routing-guard)
+
+`core/eligibility` 판정기를 Hermes 실행 경로에 연결한 플러그인입니다. `delegate_task` 의 `pre_tool_call` 훅에서 호출을 가로채, 선택된 `model_map` 경로가 하드 규칙(등록 여부·추론 강도·속도·무료→유료 폴백·모달리티·도구·컨텍스트)을 통과하는지 확인하고 위반이면 `{"action": "block"}` 으로 실행을 막습니다. 차단 메시지에는 위반 코드와 대안 경로가 함께 나갑니다.
+
+```bash
+python adapters/hermes/sync_plugin.py --check   # 플러그인의 판정기·능력 사본이 core 와 같은지
+```
+
+설치·설정·한계는 `adapters/hermes/plugin/routing-guard/README.md` 에 있습니다. 요약하면 플러그인 폴더를 `%LOCALAPPDATA%\hermes\plugins\` 로 복사하고 `plugins.enabled` 에 `routing-guard` 를 추가한 뒤 게이트웨이를 재시작합니다. 입력 토큰 수·승인 필요 여부·쓰기 범위는 `delegate_task` 인자에 없어 런타임에서 강제되지 않습니다.
 
 ## 핵심 원칙
 
