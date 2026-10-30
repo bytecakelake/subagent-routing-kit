@@ -55,7 +55,7 @@ class HappyPathTest(unittest.TestCase):
 class BlockTest(unittest.TestCase):
     def test_unknown_option_is_blocked(self):
         msg = guard.guard_call({"tasks": [{"goal": "x", "option": "F-없는경로"}]}, config(), CAPS)
-        self.assertIn("등록된 경로가 아닙니다", msg)
+        self.assertIn("is not a registered route", msg)
 
     def test_implicit_effort_is_blocked(self):
         cfg = variant("M-Terra-Deep", reasoning_effort=None)
@@ -98,7 +98,7 @@ class BlockTest(unittest.TestCase):
     def test_block_message_lists_alternatives(self):
         cfg = variant("L-GLM-Extract", reasoning_effort="none")
         msg = guard.guard_call({"tasks": [{"goal": "x", "option": "L-GLM-Extract"}]}, cfg, CAPS)
-        self.assertIn("대안:", msg)
+        self.assertIn("Alternatives:", msg)
         self.assertIn("M-Haiku-Balanced", msg)
 
 

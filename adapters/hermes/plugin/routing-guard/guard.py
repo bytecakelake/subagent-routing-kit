@@ -94,10 +94,10 @@ def guard_call(args: Mapping, config: Mapping, caps: Mapping, *, strict: bool = 
     for i, task in enumerate(tasks):
         chosen = str(task.get("option") or "").strip() or fallback_default
         if not chosen:
-            blocks.append(f"task {i}: option 이 없고 기본 경로도 비어 있습니다.")
+            blocks.append(f"task {i}: no option given and the default route is empty.")
             continue
         if chosen not in entries:
-            blocks.append(f"task {i}: '{chosen}' 은 등록된 경로가 아닙니다. 사용 가능: {', '.join(names)}")
+            blocks.append(f"task {i}: '{chosen}' is not a registered route. Available: {', '.join(names)}")
             continue
         probe = rules.Task(
             id=f"task{i}",
@@ -121,13 +121,13 @@ def guard_call(args: Mapping, config: Mapping, caps: Mapping, *, strict: bool = 
         if fallback_default in alternatives:  # 기본 경로를 먼저 보여 준다
             alternatives.remove(fallback_default)
             alternatives.insert(0, fallback_default)
-        lines = [f"task {i}: 경로 '{chosen}' 은 하드 규칙을 위반합니다 — {', '.join(reasons)}"]
+        lines = [f"task {i}: route '{chosen}' violates hard rules: {', '.join(reasons)}"]
         if reasons == [rules.UNKNOWN_MODEL]:
-            lines.append("  모델 능력 스냅샷에 없습니다. `python adapters/hermes/sync_plugin.py` 로 갱신하십시오.")
-        lines.append("  대안: " + (", ".join(alternatives[:6]) if alternatives
-                                   else "없음 — 부모가 직접 수행하거나 조건을 바꾸십시오"))
+            lines.append("  Model is missing from the capability snapshot. Refresh it with `python adapters/hermes/sync_plugin.py`.")
+        lines.append("  Alternatives: " + (", ".join(alternatives[:6]) if alternatives
+                                   else "none; do the work directly as the parent or change the conditions"))
         blocks.append("\n".join(lines))
     if not blocks:
         return None
-    return ("delegate_task 차단 — 라우팅 하드 규칙(routing-guard)\n- " + "\n- ".join(blocks)
-            + "\n경로를 바꾸거나 부모가 직접 수행하십시오. 이 판정은 모델 추천으로 우회되지 않습니다.")
+    return ("delegate_task blocked by routing hard rules (routing-guard)\n- " + "\n- ".join(blocks)
+            + "\nChange the route or do the work directly as the parent. Model recommendations cannot override this verdict.")
