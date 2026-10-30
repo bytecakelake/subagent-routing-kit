@@ -54,10 +54,11 @@ python adapters/hermes/export_model_map.py
 python adapters/hermes/export_model_map.py --check
 python adapters/hermes/validate_installed.py --hermes-home <HERMES_HOME 경로>
 
-# model_map 적용: 검증만 / config.yaml 에 들어갈 블록 확인 / 백업 후 실제 적용
+# model_map 적용: 검증만 / config.yaml 에 들어갈 블록 확인 / 백업 후 실제 적용 / 적용+재시작
 python adapters/hermes/apply_model_map.py
 python adapters/hermes/apply_model_map.py --print-yaml
 python adapters/hermes/apply_model_map.py --apply
+python adapters/hermes/apply_model_map.py --apply --restart
 
 # core/ 에 특정 에이전트 종속 용어가 없는지 검사
 python tools/check_core_neutral.py
@@ -100,7 +101,7 @@ d.status, d.eligible, d.rejected   # 상태, 통과 경로, 경로별 거부 사
 1. `python adapters/hermes/export_model_map.py --check` — 제안 파일이 명세와 일치하는지 확인
 2. `python adapters/hermes/apply_model_map.py` — 17경로·기본값·이름 규칙·추론 강도 검사(쓰기 없음)
 3. `python adapters/hermes/apply_model_map.py --apply` — 백업 후 적용, read-back 확인까지
-4. 게이트웨이 재시작 → **새 세션**에서 `delegate_task` 의 `option` 목록에 17개 이름이 보이는지 확인
+4. `--apply --restart` 를 붙이면 재시작까지 한 번에 처리합니다(진행 중인 대화·cron·백그라운드 위임이 끊기므로 y/N 확인을 받습니다). 따로 할 때는 `hermes gateway restart -y` 를 실행하고, **새 세션**에서 `delegate_task` 의 `option` 목록에 17개 이름이 보이는지 확인하십시오.
 
 설정은 프로필 단위이므로 다른 프로필에 넣을 때는 `-p <프로필>` 을 붙입니다. 되돌릴 때는 스크립트가 출력한 백업 파일을 `config.yaml` 로 복사하고 다시 재시작합니다. 17개 경로의 실호출 검증은 아직 하지 않았습니다.
 

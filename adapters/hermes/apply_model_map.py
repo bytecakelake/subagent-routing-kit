@@ -4,7 +4,8 @@
   python adapters/hermes/apply_model_map.py                 # 검증 + 적용 예정 요약 (아무것도 쓰지 않음)
   python adapters/hermes/apply_model_map.py --print-yaml    # config.yaml 에 들어갈 블록 출력
   python adapters/hermes/apply_model_map.py --apply         # 백업 → hermes config set → read-back 검증
-  python adapters/hermes/apply_model_map.py --apply -p biser  # 다른 프로필에 적용
+  python adapters/hermes/apply_model_map.py --apply --restart   # 위 작업 후 게이트웨이 재시작까지
+  python adapters/hermes/apply_model_map.py --apply -p biser    # 다른 프로필에 적용
 
 `hermes` 실행 파일은 PATH, %LOCALAPPDATA%\\hermes\\bin\\hermes.exe, 또는 --hermes 순으로 찾는다.
 설정 파일은 --config, HERMES_HOME, %LOCALAPPDATA%\\hermes, ~/.hermes 순으로 찾는다.
@@ -114,10 +115,10 @@ def config_path(explicit=None):
     return pathlib.Path.home() / ".hermes" / "config.yaml"
 
 
-def run(exe, profile, args):
+def run(exe, profile, args, timeout=180):
     argv = [exe] + (["-p", profile] if profile else []) + list(args)
     proc = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8",
-                          errors="replace", shell=False)
+                          errors="replace", shell=False, timeout=timeout)
     return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
 
 
@@ -139,16 +140,35 @@ def read_back(exe, profile, cfg, options, default):
     return problems_found
 
 
+def restart_gateway(exe, profile, all_profiles=False):
+    """게이트웨이를 재시작하고 상태를 다시 읽는다. 진행 중인 대화는 끊긴다."""
+    argv = ["gateway", "restart", "-y"] + (["--all"] if all_profiles else [])
+    code, out = run(exe, profile, argv, timeout=300)
+    print(f"hermes {' '.join(argv)} -> exit {code}")
+    if code != 0:
+        print(out.strip()[:500])
+        return code
+    time.sleep(3)
+    code2, status = run(exe, profile, ["gateway", "status"], timeout=90)
+    print(status.strip()[:600])
+    return code2
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--proposal", default=str(PROPOSAL), help="model-map-proposal.json 경로")
     ap.add_argument("--print-yaml", action="store_true", help="config.yaml 에 들어갈 블록을 출력")
     ap.add_argument("--apply", action="store_true", help="백업 후 hermes config set 으로 실제 적용")
+    ap.add_argument("--restart", action="store_true", help="적용 후 게이트웨이 재시작까지 수행")
+    ap.add_argument("--restart-all", action="store_true", help="재시작 시 모든 프로필의 게이트웨이를 종료")
+    ap.add_argument("--yes", "-y", action="store_true", help="재시작 확인 질문을 건너뛴다")
     ap.add_argument("--profile", "-p", default="", help="대상 Hermes 프로필(기본: 활성 프로필)")
     ap.add_argument("--hermes", default="", help="hermes 실행 파일 경로")
     ap.add_argument("--config", default="", help="백업·확인에 쓸 config.yaml 경로")
     ap.add_argument("--backup-dir", default="", help="백업 파일을 둘 폴더(기본: config.yaml 과 같은 폴더)")
     a = ap.parse_args(argv)
+    if a.restart and not a.apply:
+        ap.error("--restart 는 --apply 와 함께 쓰십시오 (적용 없이 재시작만 하지 않습니다).")
 
     data = load(a.proposal)
     options, default = data["options"], data["default"]
@@ -193,7 +213,23 @@ def main(argv=None):
         print(f"  되돌리려면: copy \"{backup}\" \"{cfg}\"")
         return 1
     print(f"read-back 확인: {len(options)}개 경로와 기본 경로 {default} 모두 설정에 있음")
-    print("다음: 게이트웨이를 재시작하고 새 세션에서 delegate_task 의 option 목록을 확인하십시오.")
+    if not a.restart:
+        print("다음: hermes gateway restart -y   (또는 앱에서 재시작) → 새 세션에서 option 목록 확인")
+        return 0
+
+    if not a.yes:
+        try:
+            answer = input("게이트웨이를 지금 재시작할까요? 진행 중인 대화·cron·백그라운드 위임이 끊깁니다 [y/N] ")
+        except EOFError:
+            answer = ""
+        if answer.strip().lower() not in ("y", "yes", "예"):
+            print("재시작을 생략했습니다. 나중에: hermes gateway restart -y")
+            return 0
+    code = restart_gateway(exe, a.profile, a.restart_all)
+    if code != 0:
+        print("재시작 확인에 실패했습니다. `hermes gateway status` 로 직접 확인하십시오.")
+        return 1
+    print("재시작 완료. 새 세션에서 delegate_task 의 option 목록에 17개 이름이 보이는지 확인하십시오.")
     return 0
 
 
