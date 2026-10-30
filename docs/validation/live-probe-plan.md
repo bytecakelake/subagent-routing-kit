@@ -100,6 +100,25 @@
 
 **아직 확인하지 않은 것:** 품질(같은 과제를 Quick/Balanced/Deep 으로 비교), 실제 비용(`usage.cost`), 지연 분포, 도구 왕복이 여러 번 필요한 다단계 작업, 이미지 2장 이상 동시 입력, 경로별 반복 실행의 분산.
 
+## 실사용 기록
+
+프로브는 "경로가 작동한다"까지만 증명합니다. 어떤 경로가 실제로 값을 하는지는 실사용 기록으로 판단합니다. `docs/validation/usage-log.csv` 에 한 줄씩 남기십시오.
+
+| 열 | 넣을 값 |
+|---|---|
+| `date` | 2026-10-30 형식 |
+| `route` | `delegate_task` 에 넘긴 option 이름 |
+| `model` | 자식이 실제로 쓴 모델. `%LOCALAPPDATA%\hermes\cache\delegation\live\<delegation_id>\manifest.json` 의 `model` 값 |
+| `task_type` | 추출·요약·구현·디버깅·시각 판독 같은 짧은 분류 |
+| `outcome` | `ok` / `partial` / `fail` |
+| `escalated_to` | 승격했다면 올린 경로, 아니면 비움 |
+| `tool_evidence` | 자식이 실제로 도구를 실행했는지 `y`/`n` (transcript 의 tool 단계 확인) |
+| `cost_usd` | 실제 청구액을 확인했을 때만. 모르면 비움 — 추정치를 적지 않음 |
+| `minutes` | 체감 소요. 정밀 측정이 아니면 대략값 |
+| `note` | 실패 원인, 형식 편차, 다시 쓸지 여부 |
+
+최소한 `date`·`route`·`task_type`·`outcome` 네 개만 채워도 승격률과 경로별 실패 유형이 보입니다. 30건쯤 모이면 경로별 성공률과 승격 사유를 표로 만들 수 있고, 그때 임계값과 기본 경로를 조정합니다.
+
 ## 산출물
 
 1. `docs/validation/live-probes-20261030.json` — 원자료
