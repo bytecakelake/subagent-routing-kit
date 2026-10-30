@@ -45,7 +45,7 @@ class SpecIntegrity(unittest.TestCase):
 
 
 class RegressionAgainstEarlierValidation(unittest.TestCase):
-    """초기 검증(variant-validation.json)에서 거부되어야 한다고 확인한 사례를 같은 판정기로 다시 확인한다."""
+    """초기 오프라인 검증(옛 variant-validation.json, git 이력)에서 거부되어야 한다고 확인한 사례를 같은 판정기로 다시 확인한다."""
 
     def violations(self, model, effort, tier="normal"):
         r = Route("probe", model, effort, tier)

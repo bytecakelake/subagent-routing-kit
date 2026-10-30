@@ -161,10 +161,10 @@ DeepSeek V4 Pro는 표준 목록상 약 $0.816/$1.632다. 정확한 ID 엔드포
 
 - `model-map-proposal.json`: 기존 제안 대체. 실행 후보 경로만 포함, 기본값 M-Haiku-Balanced. 모두 normal·명시적 effort·자동 폴백 없음.
 - `variant-specs.json`: 모델별 변형의 역할·금지 조건·목표 속도·wire 변환·가격. 실제 설정 JSON과 구분한다.
-- `variant-validation.json`: 오프라인 검증 결과. 실호출 결과와 혼동하지 말 것.
+- `adapters/hermes/validation/installed-probes.json`: 설치된 Hermes 변환·파서 함수 검사 결과(추론 호출 아님). 이전의 오프라인 규칙 검사는 `tests/`의 단위 테스트로 대체됨(옛 `variant-validation.json`은 git 이력에 있음). 실호출 결과와 혼동하지 말 것.
 - `openrouter-models-variants.json`: 최신 공개 모델 목록 원본.
 - `variant-extra-endpoints.json`: Kimi Pro·DeepSeek Pro·Gemini Argon·MiMo Pro 정확한 ID endpoint 응답.
-- 이전 v1 문서/제안은 `/workspace/backups/subagent-rebuild/`에 보관했다. 이전 build_proposal.py가 아닌 build_variants.py가 현재 제안 생성기다.
+- 이전 v1 문서/제안은 작성 환경의 백업 폴더에 보관했으며 이 저장소에는 없다. 현재 제안은 `core/spec/variant-specs.json`(원본)에서 `adapters/hermes/export_model_map.py`로 생성한다. 이전 생성기 `build_variants.py`는 제거되었다.
 
 ## 지금 달성한 것 → 다음 단계
 

@@ -1,0 +1,45 @@
+{
+  "kind": "installed Hermes conversion-function probes, NOT inference",
+  "checks": [
+    {
+      "name": "actual-none-means-disabled",
+      "passed": true
+    },
+    {
+      "name": "actual-normal-clears-inherited-speed",
+      "passed": true
+    },
+    {
+      "name": "actual-missing-route-inherits-global",
+      "passed": true
+    },
+    {
+      "name": "actual-missing-route-inherits-parent",
+      "passed": true
+    },
+    {
+      "name": "actual-explicit-none-blocks-inheritance",
+      "passed": true
+    },
+    {
+      "name": "installed-parser-keeps-every-option-in-order",
+      "passed": true
+    },
+    {
+      "name": "installed-parser-keeps-explicit-effort-and-tier",
+      "passed": true
+    },
+    {
+      "name": "installed-parser-keeps-explicit-empty-fallback",
+      "passed": true
+    },
+    {
+      "name": "proposal-default-is-an-option",
+      "passed": true
+    }
+  ],
+  "passed": 9,
+  "count": 9,
+  "routes": 17,
+  "unique_models": 10
+}

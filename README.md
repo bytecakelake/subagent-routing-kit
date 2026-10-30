@@ -4,16 +4,16 @@
 
 라이선스: Apache-2.0 (`LICENSE`)
 
-## 상태: v0.3 (하드 규칙 판정기 추가)
+## 상태: v0.4 (Hermes 어댑터가 core 판정기를 사용)
 
 | 구분 | 상태 |
 |---|---|
 | 티어 분류(F1~V2)와 17개 변형 명세 | 설계 완료. **어떤 운영 환경에도 미적용** |
 | 중립 정책(`core/policy`) | 작성 완료. `tools/check_core_neutral.py`로 종속 용어 없음을 검사 |
-| Hermes 어댑터 | 얇은 스킬 + 동기화 스크립트 완료. 변형 생성기(`build_variants.py`)는 이전한 그대로이며 **절대 경로에 의존** |
+| Hermes 어댑터 | 얇은 스킬, `model_map` 내보내기(core 판정기 사용), 설치된 Hermes 검사 완료. 설치본 검사 9개 통과(추론 호출 아님) |
 | 신규 17개 경로의 실호출 검증 | **미실시** (옵션 호환, 도구 왕복, 품질, 비용, 지연) |
 | 전용 결정 모델(Jev 등) 하이브리드 라우팅 | 설계만 있음. 정확도와 절감 효과는 **미측정** |
-| 하드 규칙 판정기 (`core/eligibility`) | 구현 완료. 단위 테스트 63개 통과, 규칙을 일부러 망가뜨린 7가지 변형을 모두 검출. 아직 어떤 어댑터에도 **연결되지 않음** |
+| 하드 규칙 판정기 (`core/eligibility`) | 구현 완료. 단위 테스트 76개 통과(판정기 63 + Hermes 내보내기 13), 규칙을 일부러 망가뜨린 7가지 변형을 모두 검출. Hermes 어댑터가 사용함 |
 | 두 번째 어댑터 | **없음**. 그러므로 중립성은 아직 한 환경에서만 확인된 상태 |
 
 역할 배정은 운영 가설이며 측정된 성능 순위가 아닙니다. 모델 가격과 외부 평가 지표는 2026-10-30 시점의 OpenRouter 공개 메타데이터이며 변경될 수 있습니다.
@@ -27,7 +27,7 @@ core/                         에이전트 중립 (종속 용어 금지, 자동 
   catalog/                    OpenRouter 엔드포인트 조회, 모델 능력 수집
   eligibility/                하드 규칙 판정기 (경로 자격, 쓰기 범위 충돌)
 adapters/
-  hermes/                     Hermes용 스킬, model_map 제안, 동기화 스크립트, 변형 생성기
+  hermes/                     Hermes용 스킬, model_map 내보내기·검사, 스킬 동기화
 docs/                         설계, 조사 근거, 검증 기록
 tests/                        단위 테스트 (unittest)
 tools/                        저장소 검사 스크립트
@@ -48,6 +48,11 @@ python -m unittest discover -s tests -t .
 
 # 모델 능력 다시 수집 (공개 API). 수집 후 테스트로 명세와의 일치를 확인
 python core/catalog/build_capabilities.py --specs core/spec/variant-specs.json --out core/spec/model-capabilities.json
+
+# Hermes: 명세에서 model_map 제안 만들기 / 최신인지 검사 / 설치된 Hermes 가 제안을 의도대로 읽는지 검사
+python adapters/hermes/export_model_map.py
+python adapters/hermes/export_model_map.py --check
+python adapters/hermes/validate_installed.py --hermes-home <HERMES_HOME 경로>
 
 # core/ 에 특정 에이전트 종속 용어가 없는지 검사
 python tools/check_core_neutral.py
@@ -92,10 +97,9 @@ d.status, d.eligible, d.rejected   # 상태, 통과 경로, 경로별 거부 사
 
 ## 알려진 한계
 
-- `adapters/hermes/build_variants.py`는 작성 환경의 경로(`/workspace/...`, `/hermes-home/...`)와 설치된 Hermes 플러그인 코드를 직접 읽습니다. 다른 환경에서는 실행되지 않습니다. 중립 수집부와 Hermes 내보내기로 나누는 작업이 남아 있습니다.
-- 가격 스냅샷(`openrouter-models*.json`, 각 1.2MB)은 저장소에 포함하지 않았습니다. 필요하면 OpenRouter 모델 API에서 다시 받으십시오.
+- `core/spec/variant-specs.json`이 변형의 **원본**입니다(역할·금지 조건·가격은 손으로 관리). 이전에 이 파일을 생성하던 `build_variants.py`와 계획 문서 자동 생성은 제거했습니다(git 이력에 남아 있음). `docs/openrouter-subagent-rebuild-plan.md`는 이제 수동 관리 문서이고 일부 수치는 작성 시점 기준입니다.
+- 변형 명세의 가격(`input_per_million` 등)은 2026-10-30 값이며 자동으로 갱신되지 않습니다. 모델 능력(`model-capabilities.json`)만 수집 스크립트로 갱신됩니다.
 - `core/spec/`의 가격과 지원 옵션은 수집 시점의 값입니다. 사용 전에 다시 확인하십시오.
 - 설치된 `advanced-delegation` 플러그인의 `model_map`은 provider, model, base_url, api_key, api_mode, reasoning_effort, service_tier, fallback_providers만 전달합니다. 그 밖의 라우터 옵션은 서브에이전트 경로에서 쓸 수 없다고 가정합니다.
 - 판정기가 쓰는 모델 능력(`model-capabilities.json`)은 수집 시점(2026-10-30)의 공개 메타데이터입니다. 모델·가격·지원 옵션은 바뀌므로 사용 전에 다시 수집하십시오.
-- 판정기는 아직 Hermes 어댑터의 `build_variants.py`에 연결되지 않았습니다. 그 파일은 같은 규칙을 자체 코드로 중복 구현하고 있습니다.
-- `docs/` 안의 일부 문서는 이전 경로(`/workspace/docs/subagent-rebuild/...`)를 언급합니다. 정리 전입니다.
+- `validate_installed.py`는 설치된 Hermes 소스의 변환·파서 함수를 실행하는 검사입니다. 설치 버전이 바뀌면 다시 실행해야 하며, 통과가 실제 호출 성공을 뜻하지는 않습니다.
