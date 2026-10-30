@@ -1,0 +1,46 @@
+{
+  "status": "taxonomy proposal only; no runtime route changes",
+  "subtiers": {
+    "F1": [
+      "F-Sol-Standard",
+      "F-Sonnet-Code"
+    ],
+    "F2": [
+      "F-Sol-Deep",
+      "F-Sonnet-Debug"
+    ],
+    "F3": [],
+    "M1": [
+      "M-Haiku-Balanced",
+      "M-Terra-Quick",
+      "M-Terra-Balanced"
+    ],
+    "M2": [
+      "M-Terra-Deep",
+      "M-DeepSeekPro-Reason"
+    ],
+    "L1": [
+      "L-GLM-Extract",
+      "M-Qwen-Lite"
+    ],
+    "L2": [
+      "M-Haiku-Quick",
+      "M-DeepSeekPro-Plain"
+    ],
+    "E0": [
+      "Free-Nemotron-Visual"
+    ],
+    "V1": [
+      "MM-MiMo-Inspect",
+      "MM-Gemini-Inspect"
+    ],
+    "V2": [
+      "MM-Gemini-Reason"
+    ]
+  },
+  "notes": {
+    "F3": "reserved; no active route",
+    "E0": "free experiment policy; not a capability rank",
+    "V1/V2": "visual task axis; not a universal cost rank"
+  }
+}

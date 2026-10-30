@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": 1,
+      "url": "https://openrouter.ai/api/v1/models",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 2,
+      "url": "https://openrouter.ai/docs/api_reference/limits",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 3,
+      "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 4,
+      "url": "https://openrouter.ai/api/v1/models/recursive/flint-v1.0:free/endpoints",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 5,
+      "url": "https://openrouter.ai/api/v1/models/nvidia/nemotron-3.5-super-vl:free/endpoints",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 6,
+      "url": "https://openrouter.ai/docs/guides/best-practices/reasoning-tokens",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 7,
+      "url": "https://openrouter.ai/docs/guides/routing/provider-selection",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 8,
+      "url": "https://openrouter.ai/api/v1/models/moonshotai/kimi-k3.1-pro/endpoints",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 9,
+      "url": "https://openrouter.ai/api/v1/models/deepseek/deepseek-v4-pro/endpoints",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 10,
+      "url": "https://www.anthropic.com/engineering/multi-agent-research-system",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 11,
+      "url": "https://developers.openai.com/api/docs/guides/agents/orchestration",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 12,
+      "url": "https://raw.githubusercontent.com/obra/superpowers/main/skills/subagent-driven-development/SKILL.md",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 13,
+      "url": "https://raw.githubusercontent.com/obra/superpowers/main/skills/dispatching-parallel-agents/SKILL.md",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 14,
+      "url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/main/optional-skills/autonomous-ai-agents/dynamic-workflow/SKILL.md",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 15,
+      "url": "https://raw.githubusercontent.com/NousResearch/hermes-agent/main/optional-skills/software-development/subagent-driven-development/SKILL.md",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 16,
+      "url": "https://openrouter.ai/docs/guides/routing/routers/jev-router",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 17,
+      "url": "https://openrouter.ai/docs/guides/community/jev",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 18,
+      "url": "https://raw.githubusercontent.com/lm-sys/RouteLLM/main/README.md",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 19,
+      "url": "https://vllm-sr.ai/docs/next/overview/signal-driven-decisions",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 20,
+      "url": "https://openrouter.ai/docs/guides/community/jev-tutorial",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 21,
+      "url": "https://openrouter.ai/docs/api/api-reference/alphadecisions/submit-a-decisions-request",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 22,
+      "url": "https://openrouter.ai/docs/cookbook/evaluate-and-optimize/jev-classification",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 23,
+      "url": "https://vllm-sr.ai/docs/overview/signal-driven-decisions",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 24,
+      "url": "https://docs.typesafe.ai/confidence",
+      "title": "",
+      "accessed": "2026-10-30"
+    },
+    {
+      "id": 25,
+      "url": "https://openrouter.ai/typesafe/jev-1.14",
+      "title": "",
+      "accessed": "2026-10-30"
+    }
+  ]
+}

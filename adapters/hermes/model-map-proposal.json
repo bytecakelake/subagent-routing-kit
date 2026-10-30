@@ -1,0 +1,158 @@
+{
+  "options": [
+    {
+      "name": "F-Sol-Standard",
+      "description": "어려운 설계·근거 교차검증. 미들티어로 부족하지만 최대 추론까지 불필요한 작업. 사용 금지: 짧은 요약·단순 추출. 추론=medium; 속도=normal(균형, 실측 전).",
+      "provider": "openrouter",
+      "model": "openai/gpt-6.1-sol",
+      "reasoning_effort": "medium",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "F-Sol-Deep",
+      "description": "상충하는 제약·난해한 원인 분석·실패 비용이 큰 최종 검토. 사용 금지: 동일 과제 반복 재시도·시간 민감 단순 작업. 추론=high; 속도=normal(정확성 우선, 실측 전).",
+      "provider": "openrouter",
+      "model": "openai/gpt-6.1-sol",
+      "reasoning_effort": "high",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "F-Sonnet-Code",
+      "description": "여러 파일 구현·리팩터링·코드 리뷰. 작은 모델 실패 후 사용. 사용 금지: 한 줄 수정·대량 문서 정리. 추론=medium; 속도=normal(균형, 실측 전).",
+      "provider": "openrouter",
+      "model": "anthropic/claude-sonnet-5.5",
+      "reasoning_effort": "medium",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "F-Sonnet-Debug",
+      "description": "재현이 어려운 버그·복잡한 코드 경로·설계 결함 분석. 사용 금지: 범위가 좁은 기계적 코드 변경. 추론=high; 속도=normal(정확성 우선, 실측 전).",
+      "provider": "openrouter",
+      "model": "anthropic/claude-sonnet-5.5",
+      "reasoning_effort": "high",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "M-Terra-Quick",
+      "description": "명확한 조건의 코드 탐색·일반 조사·작은 구현. 사용 금지: 불명확한 아키텍처·보안 최종 검토. 추론=low; 속도=normal(저지연 지향, 실측 전).",
+      "provider": "openrouter",
+      "model": "openai/gpt-6.1-terra",
+      "reasoning_effort": "low",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "M-Terra-Balanced",
+      "description": "일반 다단계 구현·문서와 코드 종합 분석. 사용 금지: 단순 분류·최고 난도 최종 판정. 추론=medium; 속도=normal(균형, 실측 전).",
+      "provider": "openrouter",
+      "model": "openai/gpt-6.1-terra",
+      "reasoning_effort": "medium",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "M-Terra-Deep",
+      "description": "다수 제약·실패 원인 분석. 프론티어 승격 직전 단계. 사용 금지: 상시 기본값·대량 요약. 추론=high; 속도=normal(정확성 우선, 실측 전).",
+      "provider": "openrouter",
+      "model": "openai/gpt-6.1-terra",
+      "reasoning_effort": "high",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "M-DeepSeekPro-Plain",
+      "description": "명확한 요구사항의 코드 작성·형식 변환. 고급 모델을 비추론 모드로 비교할 실험. 사용 금지: 복잡한 설계·추론을 끈 상태의 난제. 추론=none; 속도=normal(저지연 지향, 실측 전).",
+      "provider": "openrouter",
+      "model": "deepseek/deepseek-v4-pro",
+      "reasoning_effort": "none",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "M-DeepSeekPro-Reason",
+      "description": "비용 제한을 고려한 깊은 코드 분석·구현·긴 문서의 논리 검토. 사용 금지: 추출·대량 분류. medium/low를 이 모델에 설정하지 말 것. 추론=high; 속도=normal(정확성 우선, 실측 전).",
+      "provider": "openrouter",
+      "model": "deepseek/deepseek-v4-pro",
+      "reasoning_effort": "high",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "M-Haiku-Quick",
+      "description": "입력 100K 미만의 검색 정리·요약·명확한 작은 수정. 사용 금지: 100K 이상 긴 입력·어려운 추론. 추론=low; 속도=normal(저지연 지향, 실측 전).",
+      "provider": "openrouter",
+      "model": "anthropic/claude-haiku-5.5",
+      "reasoning_effort": "low",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "M-Haiku-Balanced",
+      "description": "기본 경로. 입력 100K 미만 일반 조사·작은 구현. 긴 입력이면 다른 경로 선택. 사용 금지: 100K 이상 무조건 배정·고위험 최종 판단. 추론=medium; 속도=normal(균형, 실측 전).",
+      "provider": "openrouter",
+      "model": "anthropic/claude-haiku-5.5",
+      "reasoning_effort": "medium",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "M-Qwen-Lite",
+      "description": "긴 자료의 단순 정리·비전 포함 추출. 추론 선택 미공개이므로 명시적으로 추론 끔. 사용 금지: 지원 미확인 low/medium/high 지정·깊은 추론. 추론=none; 속도=normal(저지연 지향, 실측 전).",
+      "provider": "openrouter",
+      "model": "qwen/qwen3.8-flash",
+      "reasoning_effort": "none",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "L-GLM-Extract",
+      "description": "범위가 좁은 추출·분류·형식 변환·간단한 수정. 부모가 결과 확인. 사용 금지: none/medium 임의 설정·중요한 무검증 변경. 추론=low; 속도=normal(저지연 지향, 실측 전).",
+      "provider": "openrouter",
+      "model": "z-ai/glm-5.3-flash",
+      "reasoning_effort": "low",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "Free-Nemotron-Visual",
+      "description": "무료 이미지·텍스트 추출 실험. 추론을 명시적으로 끔. 유료 폴백 없음. 사용 금지: 납기 민감·개인정보·고위험 판단. 추론=none; 속도=normal(지연 허용, 실측 전).",
+      "provider": "openrouter",
+      "model": "nvidia/nemotron-3.5-super-vl:free",
+      "reasoning_effort": "none",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "MM-MiMo-Inspect",
+      "description": "단순 화면·차트·이미지 내용 추출. 추론 강도 미공개여서 추론 끔. 사용 금지: 깊은 시각 추론·직접 음성/영상 전달 가정. 추론=none; 속도=normal(저지연 지향, 실측 전).",
+      "provider": "openrouter",
+      "model": "xiaomi/mimo-v2.6-flash",
+      "reasoning_effort": "none",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "MM-Gemini-Inspect",
+      "description": "저가 시각 모델이 놓친 복잡한 차트·문서·화면 분석. 사용 금지: 대량 단순 OCR·고급 추론을 요구하는 복합 도표. 추론=low; 속도=normal(저지연 지향, 실측 전).",
+      "provider": "openrouter",
+      "model": "google/gemini-4-argon",
+      "reasoning_effort": "low",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "MM-Gemini-Reason",
+      "description": "여러 도표·이미지의 관계 추론·시각적 모순 검증. 사용 금지: 단순 이미지 설명·비용 제한 없는 장시간 분석. 추론=high; 속도=normal(정확성 우선, 실측 전).",
+      "provider": "openrouter",
+      "model": "google/gemini-4-argon",
+      "reasoning_effort": "high",
+      "service_tier": "normal",
+      "fallback_providers": []
+    }
+  ],
+  "default": "M-Haiku-Balanced"
+}

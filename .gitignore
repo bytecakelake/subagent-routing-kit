@@ -1,0 +1,6 @@
+# 재생성 가능한 대용량 스냅샷과 비밀값은 저장소에 넣지 않는다
+data/snapshots/
+*.env
+.env*
+secrets/
+__pycache__/
