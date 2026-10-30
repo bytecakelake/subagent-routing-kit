@@ -71,18 +71,34 @@
 
 원자료는 `docs/validation/live-probes-20261030.json` 입니다. 경로별 모델은 각 delegation 의 `manifest.json` 으로 교차 확인했습니다.
 
-| 경로 | 실제 모델 | 짧은 응답 | 도구 왕복 | 구조화·시각 | 판정 |
-|---|---|---|---|---|---|
-| `M-Haiku-Balanced` | claude-haiku-5.5 | 통과 | — | — | 기본 경로 동작 |
-| `F-Sol-Deep` | gpt-6.1-sol | 통과 | 통과 | 통과 | 3단계 모두 통과 |
-| `M-Terra-Balanced` | gpt-6.1-terra | 통과 | 통과 | 통과 | 3단계 모두 통과 |
-| `L-GLM-Extract` | glm-5.3-flash | 통과 | 통과 | 통과 | 3단계 모두 통과 |
-| `Free-Nemotron-Visual` | nemotron-3.5-super-vl:free | 통과 | 조건부 통과 | 통과(이미지) | 아래 주의 |
-| `MM-Gemini-Inspect` | gemini-4-argon | — | — | 통과(이미지) | 판독 정확 |
+| 경로 | 실제 모델 | 프로브 | 판정 |
+|---|---|---|---|
+| `F-Sol-Standard` | gpt-6.1-sol | 도구+JSON | 통과 |
+| `F-Sol-Deep` | gpt-6.1-sol | 응답·도구·JSON | 3단계 통과 |
+| `F-Sonnet-Code` | claude-sonnet-5.5 | 도구+JSON | 통과 |
+| `F-Sonnet-Debug` | claude-sonnet-5.5 | 도구+JSON | 통과 |
+| `M-Terra-Quick` | gpt-6.1-terra | 도구+JSON | 통과 |
+| `M-Terra-Balanced` | gpt-6.1-terra | 응답·도구·JSON | 3단계 통과 |
+| `M-Terra-Deep` | gpt-6.1-terra | 도구+JSON | 통과 |
+| `M-DeepSeekPro-Plain` | deepseek-v4-pro | 도구+JSON | 통과(추론 끔) |
+| `M-DeepSeekPro-Reason` | deepseek-v4-pro | 도구+JSON | 값 통과·**코드펜스** |
+| `M-Haiku-Quick` | claude-haiku-5.5 | 도구+JSON | 통과 |
+| `M-Haiku-Balanced` | claude-haiku-5.5 | 응답 | 통과 |
+| `M-Qwen-Lite` | qwen3.8-flash | 도구+JSON | 통과(추론 끔) |
+| `L-GLM-Extract` | glm-5.3-flash | 응답·도구·JSON | 3단계 통과 |
+| `Free-Nemotron-Visual` | nemotron-3.5-super-vl:free | 응답·도구·이미지 | 조건부 통과 |
+| `MM-MiMo-Inspect` | mimo-v2.6-flash | 이미지 | 값 통과·**키 불일치** |
+| `MM-Gemini-Inspect` | gemini-4-argon | 이미지 | 판독 정확 |
+| `MM-Gemini-Reason` | gemini-4-argon | 이미지(추론) | 최대·최소·차이 70 정확 |
+
+17경로 모두 기능적으로 응답했고, 도구가 필요한 경로는 실제로 도구를 실행했습니다. 실패는 없었지만 **형식 편차 두 건**이 나왔습니다.
+
+- `M-DeepSeekPro-Reason` 은 JSON 을 ```json 코드펜스로 감쌌습니다. 값은 정확하므로 소비자가 펜스를 벗기는 후처리를 넣어야 합니다.
+- `MM-MiMo-Inspect` 는 키를 `route` 가 아니라 `route set` 으로 합쳐 반환했습니다. 값은 맞지만 스키마를 그대로 신뢰하면 파싱이 깨집니다.
 
 **주의해서 볼 결과 하나.** 무료 경로에 `echo TOOL-OK` 를 시키자 도구를 실행하지 않고 응답만 `TOOL-OK` 로 지어냈습니다(transcript 에 tool 단계 없음, `api_calls=1`). 추측할 수 없는 값(`md5sum` 앞 12자)으로 다시 시키자 실제로 실행해 정확한 값을 반환했습니다. 즉 무료 경로는 **결과를 예측할 수 있는 명령에서 도구를 건너뛸 수 있으므로**, 배정 시 "실행하지 않으면 실패로 간주한다" 같은 강제 조건을 계약에 넣어야 합니다. 이는 이 경로만의 문제가 아니라 작은 모델 전반의 위험이므로, 자식 결과를 받을 때 도구 흔적을 함께 확인하는 편이 안전합니다.
 
-**아직 확인하지 않은 것:** 나머지 11경로, 품질(같은 과제 비교), 실제 비용(`usage.cost`), 지연 분포, 도구 왕복이 여러 번 필요한 작업, 이미지 2장 이상 동시 입력.
+**아직 확인하지 않은 것:** 품질(같은 과제를 Quick/Balanced/Deep 으로 비교), 실제 비용(`usage.cost`), 지연 분포, 도구 왕복이 여러 번 필요한 다단계 작업, 이미지 2장 이상 동시 입력, 경로별 반복 실행의 분산.
 
 ## 산출물
 
