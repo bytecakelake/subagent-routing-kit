@@ -32,6 +32,7 @@ Use only for authority decisions (spend, external publishing, deletion, scope, p
 - What could go wrong and how far it reaches:
 - Reversible? Exact undo step:
 - Cost:
+- Verified beforehand: tests, evidence, or specialist (F1/F2) review results, and how findings were handled
 - Recommendation and confidence: include what is still unverified
 - What you actually need to judge: the one or two points that depend on your authority or preference
 - Safe default if unsure: the reversible or minimal option

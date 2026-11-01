@@ -49,7 +49,7 @@ People asked to approve something outside their expertise often approve just to 
    - cost and alternatives, including doing nothing;
    - a recommendation with honest confidence, and what remains unverified.
 3. **Assume the user may not know the domain.** Name the one or two things they should actually judge, and offer a safe default (the reversible or minimal option) instead of a yes/no on jargon.
-4. **Do not make approval the only safety control.** Prefer backups, staged and reversible changes, and dry runs. High-risk technical changes get an independent review before the request, not instead of it.
+4. **Do not make approval the only safety control.** Prefer backups, staged and reversible changes, and dry runs. High-risk technical changes, and decisions that hinge on specialist knowledge the user likely lacks, get an independent review by a strong (F1/F2) child before the request, not instead of it; put its findings and how they were handled in the request. Keep this to specialist or high-risk decisions, not every task.
 5. **Approval does not upgrade evidence.** An approved but unverified claim is still unverified. After approval, verify the actual result and report it.
 6. **Treat a judgment handed back as a signal.** Instant approval of a jargon-heavy request, or "it's fine, right?", means the user is returning the judgment to you. Restate the recommendation, the evidence, and the residual risk; do not read it as informed consent.
 
