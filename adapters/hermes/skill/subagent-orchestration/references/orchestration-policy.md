@@ -28,6 +28,31 @@ Default design: a strong routing/synthesis model as parent. The parent owns deco
 - Do not repeatedly send full sources or full logs to the parent. Children write short verifiable reports, exact evidence locations, and artifacts; the parent fetches what it needs.
 - Choose a parent on tool/schema compliance, instruction following, context retention, rejecting bad results, restraint in delegating, and total cost, not on a single reasoning score.
 
+### Do not downgrade the parent to save cost
+
+Save cost in the children, not in the parent. The parent's mistakes do not stay local: a wrong decomposition, a wrong route, or an accepted bad result flows into every child and into the final answer, and the rework usually costs more than the parent tokens saved.
+
+- Field feedback (2026-11-01, user report, not a controlled measurement): running a mid-priced model (Claude Sonnet or GPT Terra class) as the sole parent to cut cost lowered overall quality. Treat "cheaper parent" as a known failure mode, not a default saving.
+- Cut parent cost with context discipline instead: short verifiable child reports, evidence locations instead of full sources, deterministic work in code, no unnecessary children.
+- A parent downgrade is an experiment, never a silent setting change. Run it only with the same tasks on both parents, compare success rate, rework, and total cost per successful task, and keep a one-step rollback to the stronger parent.
+- A mid-tier model may still serve as a child for frontier-tier (F1/F2) work. The rule is about who owns judgment, not which models exist in the pool.
+
+## Approval requests are not verification
+
+People asked to approve something outside their expertise often approve just to move on. An approval then adds no safety and hides the risk. Design requests so that approval is meaningful, and never let approval stand in for verification.
+
+1. **Separate authority questions from correctness questions.** Ask the user about decisions only they can make: spending, external publishing, deletion, scope, preferences, accepting a known risk. Do not ask the user to confirm technical correctness ("is this config right?", "is this code safe?"); establish it first with tests, evidence, or an independent review, then report the result.
+2. **Make every request decision-ready, in plain language:**
+   - what will happen and why;
+   - what could go wrong, and how far the damage reaches;
+   - whether it is reversible, and the exact undo step;
+   - cost and alternatives, including doing nothing;
+   - a recommendation with honest confidence, and what remains unverified.
+3. **Assume the user may not know the domain.** Name the one or two things they should actually judge, and offer a safe default (the reversible or minimal option) instead of a yes/no on jargon.
+4. **Do not make approval the only safety control.** Prefer backups, staged and reversible changes, and dry runs. High-risk technical changes get an independent review before the request, not instead of it.
+5. **Approval does not upgrade evidence.** An approved but unverified claim is still unverified. After approval, verify the actual result and report it.
+6. **Treat a judgment handed back as a signal.** Instant approval of a jargon-heavy request, or "it's fine, right?", means the user is returning the judgment to you. Restate the recommendation, the evidence, and the residual risk; do not read it as informed consent.
+
 ## Dedicated decision model and rule code
 
 Even with a classifier model for routing/filtering, keep this order:

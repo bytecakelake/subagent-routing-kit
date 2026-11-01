@@ -23,6 +23,19 @@
 - Runnable without siblings' outputs? Shared writes conflict-free?
 - Is there a way to check real evidence rather than the child's status?
 
+## Approval request template (to the user)
+
+Use only for authority decisions (spend, external publishing, deletion, scope, preference, accepting a known risk). Establish technical correctness with evidence or review first; do not ask the user to vouch for it.
+
+- Decision needed: one sentence, plain language, no unexplained jargon
+- What happens if approved / if not:
+- What could go wrong and how far it reaches:
+- Reversible? Exact undo step:
+- Cost:
+- Recommendation and confidence: include what is still unverified
+- What you actually need to judge: the one or two points that depend on your authority or preference
+- Safe default if unsure: the reversible or minimal option
+
 ## Minimal output contract example
 
 ```json
