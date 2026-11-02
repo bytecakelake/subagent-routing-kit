@@ -3,23 +3,30 @@
 
 추론 호출을 하지 않는다. 설치된 Hermes 소스의 변환 함수를 수정 없이 실행한다.
 Hermes 소스 경로가 필요하다: --hermes-home 또는 환경 변수 HERMES_HOME
-  (<hermes-home>/hermes-agent, <hermes-home>/plugins/advanced-delegation/model_map.py 를 사용)
+(<hermes-home>/hermes-agent, <hermes-home>/plugins/advanced-delegation/model_map.py 를 사용)
 
-  python adapters/hermes/validate_installed.py --hermes-home /hermes-home [--out validation/installed-probes.json]
+\b
+python adapters/hermes/validate_installed.py --hermes-home /hermes-home [--out validation/installed-probes.json]
 
 이 검사는 설치된 버전에 의존한다. 버전이 바뀌면 다시 실행해야 하며, 통과가 실제 호출 성공을 뜻하지는 않는다.
 """
-import argparse
 import ast
 import json
 import logging
-import os
 import pathlib
 import sys
 import typing
 from types import SimpleNamespace
+from typing import Annotated, Optional
+
+import typer
+from pydantic import DirectoryPath
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))  # 스크립트로 직접 실행해도 core 를 import 할 수 있게 한다
+
+from core import cliutil  # noqa: E402
+
 PROPOSAL = ROOT / "adapters" / "hermes" / "model-map-proposal.json"
 PLUGIN_NAMES = {"BACKEND", "SETTINGS_PATH", "ROUTE_FIELDS", "_warned"}
 PLUGIN_FUNCS = {"_warn_once", "_text", "_entry_problem", "configured_options"}
@@ -102,21 +109,31 @@ def run(hermes_home):
             "routes": len(names), "unique_models": len({o["model"] for o in proposal["options"]})}
 
 
-def main(argv=None):
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--hermes-home", default=os.environ.get("HERMES_HOME"))
-    ap.add_argument("--out", help="결과 JSON 저장 경로(생략하면 출력만)")
-    a = ap.parse_args(argv)
-    if not a.hermes_home:
-        raise SystemExit("--hermes-home 또는 환경 변수 HERMES_HOME 이 필요합니다")
+class Args(cliutil.Args):
+    hermes_home: DirectoryPath
+    out: Optional[pathlib.Path] = None
+
+
+app = cliutil.make_app()
+
+
+@app.command(help=__doc__)
+def main(
+    hermes_home: Annotated[Optional[pathlib.Path], typer.Option(envvar="HERMES_HOME", help="Hermes 홈 폴더. 환경 변수 HERMES_HOME 으로도 지정")] = None,
+    out: Annotated[Optional[pathlib.Path], typer.Option(help="결과 JSON 저장 경로(생략하면 출력만)")] = None,
+):
+    if hermes_home is None:
+        raise typer.BadParameter("--hermes-home 또는 환경 변수 HERMES_HOME 이 필요합니다")
+    a = cliutil.parse_args(Args, hermes_home=hermes_home, out=out)
     result = run(a.hermes_home)
     for c in result["checks"]:
         print(("PASS " if c["passed"] else "FAIL ") + c["name"])
     print(f"{result['passed']}/{result['count']} passed")
     if a.out:
-        pathlib.Path(a.out).write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return 0 if result["passed"] == result["count"] else 1
+        a.out.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    if result["passed"] != result["count"]:
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    app()

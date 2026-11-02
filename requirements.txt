@@ -1,5 +1,6 @@
 # 실행에 필요한 외부 패키지. 설치: pip install -r requirements.txt
-# 검증한 버전의 하한만 둔다(Python 3.13 에서 확인). 플러그인 경로(core/eligibility, adapters/hermes/plugin)는 표준 라이브러리만 쓴다.
+# 검증한 버전의 하한만 둔다(Python 3.13 에서 확인). 플러그인 경로(core/eligibility, adapters/hermes/plugin)와 tools/check_core_neutral.py 는 표준 라이브러리만 쓴다.
 orjson>=3.13,<4
 httpx>=0.28,<1
 pydantic>=2.14,<3
+typer>=0.27,<1

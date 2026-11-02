@@ -4,7 +4,6 @@
 실행: <venv>/bin/python bench/eval_criteria.py [--out bench/criteria-results.json]
 각 섹션은 '사실'(관찰된 동작)만 기록한다. 판단은 docs/library-candidates-experiment.md 에 쓴다.
 """
-import argparse
 import http.server
 import json
 import pathlib
@@ -15,11 +14,15 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from typing import Annotated
+
+import typer
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 OUT = {}
 
+from core import cliutil  # noqa: E402
 from core.contract import load_schema  # noqa: E402
 from core.contract import validate as pydantic_validate  # noqa: E402
 
@@ -307,110 +310,21 @@ def eval_pytest():
     OUT["pytest"] = res
 
 
-# ---------- F. typer vs argparse: 공식 문서가 안내하는 방식으로 같은 CLI 를 재현 ----------
-def eval_typer():
-    """문서 근거(typer.tiangolo.com tutorial/multiple-values/*): 여러 값은 반복 옵션(list)이나 마지막 위치 인자(list)로 받고,
-    옵션 하나가 공백으로 이어진 가변 개수 값을 받는 기능(nargs=+)은 없다(typer.Option 에 nargs 매개변수 없음).
-    상호 배타 옵션은 공식 기능이 아니며 커뮤니티 해법(fastapi/typer#140)은 콜백이나 본문 검사다.
-    """
-    import argparse
-    import inspect
-    import typing
-
-    import typer
-    from typer.testing import CliRunner
-
-    def arg_cli(argv):
-        ap = argparse.ArgumentParser(prog="inspect")
-        g = ap.add_mutually_exclusive_group(required=True)
-        g.add_argument("--ids", nargs="+")
-        g.add_argument("--from-specs")
-        ap.add_argument("--out", required=True)
-        ap.add_argument("--timeout", type=int, default=40)
-        return ap.parse_args(argv)
-
-    def check_source(ids, from_specs):
-        if bool(ids) == bool(from_specs):  # 둘 다 있거나 둘 다 없음
-            raise typer.BadParameter("--ids 와 --from-specs 중 정확히 하나가 필요합니다")
-
-    # 방식 1: 반복 옵션(--ids a --ids b) + 본문 검사
-    app1 = typer.Typer(add_completion=False)
-
-    @app1.command()
-    def repeated_option(
-        out: typing.Annotated[str, typer.Option()],
-        ids: typing.Annotated[typing.Optional[list[str]], typer.Option()] = None,
-        from_specs: typing.Annotated[typing.Optional[str], typer.Option()] = None,
-        timeout: typing.Annotated[int, typer.Option()] = 40,
-    ):
-        check_source(ids, from_specs)
-        print(f"ids={ids} from_specs={from_specs}")
-
-    # 방식 2: 마지막 위치 인자 list (ids 를 --ids 옵션이 아니라 위치 인자로) + 본문 검사
-    app2 = typer.Typer(add_completion=False)
-
-    @app2.command()
-    def positional(
-        ids: typing.Annotated[typing.Optional[list[str]], typer.Argument()] = None,
-        out: typing.Annotated[str, typer.Option()] = "",
-        from_specs: typing.Annotated[typing.Optional[str], typer.Option()] = None,
-        timeout: typing.Annotated[int, typer.Option()] = 40,
-    ):
-        if not out:
-            raise typer.BadParameter("--out 이 필요합니다")
-        check_source(ids, from_specs)
-        print(f"ids={ids} from_specs={from_specs}")
-
-    runner = CliRunner()
-
-    def run_typer(app, argv):
-        r = runner.invoke(app, argv)
-        lines = [l.strip(" │╭╰╮╯─") for l in (r.output or "").splitlines()]
-        msg = next((l for l in lines if l and not l.startswith(("Usage", "Try", "Error"))), "")
-        return f"exit {r.exit_code}" + (f": {msg[:70]}" if r.exit_code else f": {(r.output or '').strip()[:60]}")
-
-    cases = {
-        "A. --ids a b c (공백 구분, 현재 사용법)": ["--ids", "a", "b", "c", "--out", "o"],
-        "B. --ids a --ids b (반복 옵션)": ["--ids", "a", "--ids", "b", "--out", "o"],
-        "C. 위치 인자 a b c": ["a", "b", "c", "--out", "o"],
-        "D. --from-specs 만": ["--from-specs", "x", "--out", "o"],
-        "E. --ids 와 --from-specs 둘 다": ["--ids", "a", "--from-specs", "x", "--out", "o"],
-        "F. 둘 다 없음": ["--out", "o"],
-        "G. --out 없음": ["--ids", "a"],
-        "H. --timeout abc": ["--ids", "a", "--out", "o", "--timeout", "abc"],
-        "I. 알 수 없는 옵션": ["--ids", "a", "--out", "o", "--nope"],
-    }
-    res = {}
-    for label, argv in cases.items():
-        row = {}
-        try:
-            a = arg_cli(argv)
-            row["argparse"] = f"ok ids={a.ids}"
-        except SystemExit as e:
-            row["argparse"] = f"exit {e.code}"
-        row["typer 방식1(반복 옵션)"] = run_typer(app1, argv)
-        row["typer 방식2(위치 인자)"] = run_typer(app2, argv)
-        res[label] = row
-    res["_정의 길이(줄)"] = {
-        "argparse(arg_cli)": len(inspect.getsource(arg_cli).splitlines()),
-        "typer 방식1": len(inspect.getsource(repeated_option).splitlines()) + len(inspect.getsource(check_source).splitlines()),
-    }
-    res["_help"] = {"typer 방식1 --help 줄 수": len(runner.invoke(app1, ["--help"]).output.splitlines())}
-    OUT["typer"] = res
+app = cliutil.make_app()
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default=str(ROOT / "bench" / "criteria-results.json"))
-    a = ap.parse_args()
-    for fn in (eval_orjson, eval_schema_libs, eval_http, eval_pydantic, eval_pytest, eval_typer):
+@app.command(help=__doc__)
+def main(
+    out: Annotated[pathlib.Path, typer.Option(help="결과 JSON 저장 경로")] = ROOT / "bench" / "criteria-results.json",
+):
+    for fn in (eval_orjson, eval_schema_libs, eval_http, eval_pydantic, eval_pytest):
         try:
             fn()
         except Exception as e:  # 한 섹션의 실패가 나머지를 막지 않게 한다
             OUT[fn.__name__] = {"ERROR": f"{type(e).__name__}: {e}"}
-    pathlib.Path(a.out).write_text(json.dumps(OUT, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    out.write_text(json.dumps(OUT, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps(OUT, indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":
-    main()
+    app()

@@ -4,17 +4,21 @@
 원본은 core/spec/variant-specs.json 이다. 이 스크립트는 변환과 Hermes 고유 제약 검사만 한다.
 경로 자격 판정은 core/eligibility 에 맡긴다. JSON 쓰기에 orjson 을 쓰며 추론 호출은 하지 않는다.
 
-  python adapters/hermes/export_model_map.py            # model-map-proposal.json 을 다시 만든다
-  python adapters/hermes/export_model_map.py --check    # 파일을 건드리지 않고 최신인지만 검사한다
+\b
+python adapters/hermes/export_model_map.py            # model-map-proposal.json 을 다시 만든다
+python adapters/hermes/export_model_map.py --check    # 파일을 건드리지 않고 최신인지만 검사한다
 """
-import argparse
 import pathlib
 import sys
+from typing import Annotated
+
+import typer
+from pydantic import FilePath
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from core import jsonio  # noqa: E402
+from core import cliutil, jsonio  # noqa: E402
 from core.eligibility import Task, evaluate, load_capabilities, routes_from_specs  # noqa: E402
 
 PROVIDER = "openrouter"
@@ -77,28 +81,36 @@ def render(specs, default=DEFAULT_ROUTE):
     return jsonio.dumps({"options": options, "default": default}, indent=True) + "\n"
 
 
-def main(argv=None):
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--specs", default=str(SPECS))
-    ap.add_argument("--out", default=str(OUT))
-    ap.add_argument("--default", default=DEFAULT_ROUTE, help="model_map 의 기본 경로 이름")
-    ap.add_argument("--check", action="store_true", help="파일을 쓰지 않고 현재 파일이 최신인지 검사")
-    a = ap.parse_args(argv)
+class Args(cliutil.Args):
+    specs: FilePath
+    out: pathlib.Path
+    default: str
+    check: bool
 
-    specs = jsonio.load_path(a.specs)
-    text = render(specs, a.default)
-    out = pathlib.Path(a.out)
+
+app = cliutil.make_app()
+
+
+@app.command(help=__doc__)
+def main(
+    specs: Annotated[pathlib.Path, typer.Option(help="variant-specs.json 경로", show_default="core/spec/variant-specs.json")] = SPECS,
+    out: Annotated[pathlib.Path, typer.Option(help="model-map 제안 파일 경로", show_default="adapters/hermes/model-map-proposal.json")] = OUT,
+    default: Annotated[str, typer.Option(help="model_map 의 기본 경로 이름")] = DEFAULT_ROUTE,
+    check: Annotated[bool, typer.Option("--check", help="파일을 쓰지 않고 현재 파일이 최신인지 검사")] = False,
+):
+    a = cliutil.parse_args(Args, specs=specs, out=out, default=default, check=check)
+    spec_list = jsonio.load_path(a.specs)
+    text = render(spec_list, a.default)
     if a.check:
-        have = out.read_text(encoding="utf-8") if out.exists() else None
+        have = a.out.read_text(encoding="utf-8") if a.out.exists() else None
         if have != text:
-            print(f"DRIFT: {out} 가 명세와 다릅니다. 인자 없이 다시 실행해 갱신하십시오.")
-            return 1
-        print(f"OK: {out.name} 가 명세와 일치 ({len(specs)} 경로)")
-        return 0
-    out.write_text(text, encoding="utf-8")
-    print(f"wrote {out}: {len(specs)} routes, default={a.default}")
-    return 0
+            print(f"DRIFT: {a.out} 가 명세와 다릅니다. 인자 없이 다시 실행해 갱신하십시오.")
+            raise typer.Exit(1)
+        print(f"OK: {a.out.name} 가 명세와 일치 ({len(spec_list)} 경로)")
+        return
+    a.out.write_text(text, encoding="utf-8")
+    print(f"wrote {a.out}: {len(spec_list)} routes, default={a.default}")
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    app()

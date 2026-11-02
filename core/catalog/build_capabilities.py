@@ -5,19 +5,24 @@
 orjson 과 httpx 를 사용한다(requirements.txt).
 
 예:
-  python core/catalog/build_capabilities.py --specs core/spec/variant-specs.json --out core/spec/model-capabilities.json
-  python core/catalog/build_capabilities.py --models-json models.json --specs ... --out ...
+
+\b
+python core/catalog/build_capabilities.py --specs core/spec/variant-specs.json --out core/spec/model-capabilities.json
+python core/catalog/build_capabilities.py --models-json models.json --specs ... --out ...
 """
-import argparse
 import datetime
 import hashlib
 import pathlib
 import sys
+from typing import Annotated, Optional
+
+import typer
+from pydantic import FilePath, Field
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))  # 스크립트로 직접 실행해도 core 를 import 할 수 있게 한다
 
-from core import jsonio  # noqa: E402
+from core import cliutil, jsonio  # noqa: E402
 from core.catalog import _http  # noqa: E402
 
 MODELS_URL = "https://openrouter.ai/api/v1/models"
@@ -72,22 +77,33 @@ def build(models, wanted):
     return {w: extract_caps(models[w]) for w in sorted(wanted)}
 
 
-def main(argv=None):
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--specs", required=True, help="variant-specs.json 경로. 명세에 쓰인 모델만 수집")
-    ap.add_argument("--out", required=True)
-    ap.add_argument("--models-json", help="미리 받은 모델 목록(OpenRouter /models 응답). 없으면 공개 API에서 받는다")
-    ap.add_argument("--collected-at", default=datetime.date.today().isoformat())
-    ap.add_argument("--timeout", type=int, default=60)
-    a = ap.parse_args(argv)
+class Args(cliutil.Args):
+    specs: FilePath
+    out: pathlib.Path
+    models_json: Optional[FilePath] = None
+    collected_at: datetime.date
+    timeout: int = Field(gt=0)
 
+
+app = cliutil.make_app()
+
+
+@app.command(help=__doc__)
+def main(
+    specs: Annotated[pathlib.Path, typer.Option(help="variant-specs.json 경로. 명세에 쓰인 모델만 수집")],
+    out: Annotated[pathlib.Path, typer.Option(help="결과 JSON 저장 경로")],
+    models_json: Annotated[Optional[pathlib.Path], typer.Option(help="미리 받은 모델 목록(OpenRouter /models 응답). 없으면 공개 API에서 받는다")] = None,
+    collected_at: Annotated[Optional[str], typer.Option(help="수집일 YYYY-MM-DD. 기본: 오늘")] = None,
+    timeout: Annotated[int, typer.Option(help="요청 제한 시간(초)")] = 60,
+):
+    a = cliutil.parse_args(Args, specs=specs, out=out, models_json=models_json,
+                           collected_at=collected_at or datetime.date.today().isoformat(), timeout=timeout)
     models, source = load_models(a.models_json, a.timeout)
     caps = build(models, models_in_specs(a.specs))
-    doc = {"schema": SCHEMA, "collected_at": a.collected_at, "source": source, "models": caps}
-    pathlib.Path(a.out).write_text(jsonio.dumps(doc, indent=True, sort_keys=True) + "\n", encoding="utf-8")
-    print(f"wrote {a.out}: {len(caps)} models, collected_at={a.collected_at}")
-    return 0
+    doc = {"schema": SCHEMA, "collected_at": a.collected_at.isoformat(), "source": source, "models": caps}
+    a.out.write_text(jsonio.dumps(doc, indent=True, sort_keys=True) + "\n", encoding="utf-8")
+    print(f"wrote {a.out}: {len(caps)} models, collected_at={a.collected_at.isoformat()}")
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    app()

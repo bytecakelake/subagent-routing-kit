@@ -6,19 +6,24 @@
 공개 API만 읽으며 인증 키가 필요 없다. orjson 과 httpx 를 사용한다(requirements.txt).
 
 예:
-  python inspect_endpoints.py --from-specs ../spec/variant-specs.json --out endpoints.json
-  python inspect_endpoints.py --ids openai/gpt-6-luna nvidia/nemotron-3.5-super-vl:free --out endpoints.json
+
+\b
+python core/catalog/inspect_endpoints.py --from-specs core/spec/variant-specs.json --out endpoints.json
+python core/catalog/inspect_endpoints.py --ids openai/gpt-6-luna --ids nvidia/nemotron-3.5-super-vl:free --out endpoints.json
 """
-import argparse
 import concurrent.futures
 import pathlib
 import sys
 import urllib.parse
+from typing import Annotated, Optional
+
+import typer
+from pydantic import Field, FilePath, model_validator
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))  # 스크립트로 직접 실행해도 core 를 import 할 수 있게 한다
 
-from core import jsonio  # noqa: E402
+from core import cliutil, jsonio  # noqa: E402
 from core.catalog import _http  # noqa: E402
 
 BASE = "https://openrouter.ai/api/v1/models/"
@@ -42,20 +47,37 @@ def fetch(client, model_id):
         return {"id": model_id, "url": url, "error": _http.describe(e)}
 
 
-def main(argv=None):
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    src = ap.add_mutually_exclusive_group(required=True)
-    src.add_argument("--ids", nargs="+", help="조회할 정확한 모델 ID 목록")
-    src.add_argument("--from-specs", help="variant-specs.json 경로. 명세에 쓰인 모델을 조회")
-    ap.add_argument("--out", required=True, help="결과 JSON 저장 경로")
-    ap.add_argument("--timeout", type=int, default=40)
-    ap.add_argument("--workers", type=int, default=6)
-    a = ap.parse_args(argv)
+class Args(cliutil.Args):
+    ids: Optional[list[Annotated[str, Field(pattern=r"^\S+$")]]] = None
+    from_specs: Optional[FilePath] = None
+    out: pathlib.Path
+    timeout: int = Field(gt=0)
+    workers: int = Field(gt=0)
 
-    ids = a.ids if a.ids else ids_from_specs(a.from_specs)
+    @model_validator(mode="after")
+    def _exactly_one_source(self):
+        if bool(self.ids) == bool(self.from_specs):
+            raise ValueError("--ids 와 --from-specs 중 정확히 하나가 필요합니다")
+        return self
+
+
+app = cliutil.make_app()
+
+
+@app.command(help=__doc__)
+def main(
+    out: Annotated[pathlib.Path, typer.Option(help="결과 JSON 저장 경로")],
+    ids: Annotated[Optional[list[str]], typer.Option(help="조회할 정확한 모델 ID. 여러 개면 옵션을 반복해서 지정")] = None,
+    from_specs: Annotated[Optional[pathlib.Path], typer.Option(help="variant-specs.json 경로. 명세에 쓰인 모델을 조회")] = None,
+    timeout: Annotated[int, typer.Option(help="요청 제한 시간(초)")] = 40,
+    workers: Annotated[int, typer.Option(help="동시 요청 수")] = 6,
+):
+    a = cliutil.parse_args(Args, ids=ids, from_specs=from_specs, out=out, timeout=timeout, workers=workers)
+
+    targets = a.ids or ids_from_specs(a.from_specs)
     with _http.new_client(a.timeout) as client, concurrent.futures.ThreadPoolExecutor(max_workers=a.workers) as ex:
-        results = list(ex.map(lambda m: fetch(client, m), ids))
-    pathlib.Path(a.out).write_text(jsonio.dumps(results, indent=True), encoding="utf-8")
+        results = list(ex.map(lambda m: fetch(client, m), targets))
+    a.out.write_text(jsonio.dumps(results, indent=True), encoding="utf-8")
 
     ok = 0
     for r in results:
@@ -68,8 +90,9 @@ def main(argv=None):
         for e in eps[:5]:
             print("  ", jsonio.dumps({k: e.get(k) for k in ("provider_name", "tag", "status", "context_length", "pricing")}))
     print(f"records={len(results)} successful={ok}")
-    return 0 if ok == len(results) else 1
+    if ok != len(results):
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    app()

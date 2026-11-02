@@ -146,7 +146,7 @@
 
 ### 재평가 결론
 
-초기의 "비추천" 근거 중 상호 배타 문제는 구현 누락에서 나온 과장이었고 직접 검사를 쓰면 동등해진다. 남는 실제 차이는 (1) 기존 사용법 `--ids a b c` 호환성 상실, (2) 기동 시간과 의존성 증가, (3) 반복 옵션 값 보존과 자동완성 같은 부가 이득이다. 판정은 **보류**: 사용법 변경과 기동 비용을 감수할 만한 부가 이득(자동완성, 도움말)이 필요할 때만 도입한다.
+초기의 "비추천" 근거 중 상호 배타 문제는 구현 누락에서 나온 과장이었고 직접 검사를 쓰면 동등해진다. 남는 실제 차이는 (1) 기존 사용법 `--ids a b c` 호환성 상실, (2) 기동 시간과 의존성 증가, (3) 반복 옵션 값 보존과 자동완성 같은 부가 이득이다. 당시 판정은 보류였고, 이후 사용자가 도입을 확정했다(아래 "typer 도입").
 
 ### typer 와 pydantic 연동 (추가 확인)
 
@@ -157,3 +157,40 @@
 - 서드파티 브리지 `typantic`(0.8.1, 의존성 pydantic·pyyaml·typer)은 pydantic 모델에서 typer CLI 를 만들고 검증기를 그대로 적용했다. 상호 배타, 형식 오류, 잘못된 정수 모두 종료 코드 2로 거부했다. 이 패키지는 이번에 처음 써 봤고 성숙도·유지 상태는 검증하지 않았다.
 - 어느 방식이든 `--ids a b c`(공백 구분)는 여전히 거부된다. 이 제약은 typer 의 파서 구조에서 오므로 pydantic 으로 해결되지 않는다.
 - pydantic 으로 인자 값을 검사하는 일은 typer 에 의존하지 않는다. argparse 가 파싱한 값을 같은 모델에 넣어도 되므로, 이 연동이 typer 도입의 근거가 되지는 않는다(이 문장은 구조상의 추론이며 argparse 로는 실행해 보지 않았다).
+
+## typer 도입 (2026-11-02)
+
+결정: typer 확정. `typantic`은 성숙도 조사(0.x, 관리자 1명, 별 1개·이슈 0건, 0.8.0 에서 검증 의미론이 바뀐 호환성 파괴)로 도입하지 않고, **typer 가 파싱한 값을 본문에서 pydantic 모델에 넣어 검증**하는 방식을 택했다.
+
+### 구조
+
+- `core/cliutil.py`: `make_app()`(자동완성 설치 옵션과 rich 서식 끔), `Args`(모르는 필드 거부, 불변), `parse_args()`(검증 오류를 `typer.BadParameter` 로 바꿔 종료 코드 2). 오류 메시지에는 필드 이름이 `--flag` 형식으로 붙는다.
+- 각 스크립트는 `app = cliutil.make_app()`, 타입이 있는 명령 함수, 그리고 같은 파일의 `Args` 하위 모델로 구성된다. 진입점은 `app()`, 비정상 종료는 `typer.Exit(코드)` 이다. 예전의 `main(argv)` 와 `sys.exit(main())` 은 없어졌다.
+- 대상 7개: `build_capabilities`, `inspect_endpoints`, `apply_model_map`, `export_model_map`, `sync_plugin`, `sync_skill`, `validate_installed`, 그리고 벤치 2개. `tools/check_core_neutral.py` 는 argparse 를 쓰지 않으므로 표준 라이브러리 그대로다.
+- 예시 블록은 click 의 `\b` 표식으로 줄바꿈을 보존한다.
+
+### 동작 변화 (호환성에 영향)
+
+| 항목 | 변화 |
+|---|---|
+| `inspect_endpoints --ids a b c` | **거부**. `--ids a --ids b --ids c` 로 반복해야 한다. 문서(README, 스크립트 도움말)를 고쳤다 |
+| `--ids a --ids b` | 이전(argparse)에는 마지막 값만 남았으나 이제 모두 수집된다 |
+| `apply_model_map --restart-all` 단독 | **거부**. 이전에는 `--restart` 없이 조용히 무시됐다. `--restart` 는 `--apply` 가 필요한 기존 규칙 유지 |
+| `--timeout`, `--workers` 가 0 이하 | 거부 (이전에는 그대로 통과) |
+| `--collected-at` 형식 | `YYYY-MM-DD` 만 허용 (이전에는 임의 문자열이 파일에 기록됨) |
+| 입력 파일이 없을 때 | 역추적 대신 `--specs: Path does not point to a file: ...` 와 종료 코드 2 |
+| `validate_installed` 의 홈 | `--hermes-home` 또는 `HERMES_HOME`, 디렉터리여야 함. 없으면 종료 코드 2 |
+| 사용법 오류의 종료 코드 | argparse 와 같은 2 |
+| 도움말 | typer 형식(`Usage`, `Options`)이며 인자 유형 `<path>`, `<int>` 가 붙는다 |
+
+### 검증
+
+- `tests/test_cli.py`(29개)가 오프라인으로 각 CLI 의 도움말, 검증 규칙(상호 배타, 의존 관계, 범위, 날짜, 파일 존재), 종료 코드, `--check` 의 DRIFT 판정, 환경 변수 사용, `-p`/`-y` 단축 옵션을 확인한다. `--apply` 경로는 실제 설정을 바꾸므로 실행하지 않는다. `tests/test_catalog_http.py` 는 진입점부터 로컬 서버까지의 종단 경로(반복 `--ids`, 일부 실패 시 종료 코드 1, `--from-specs`)를 확인한다.
+- 규칙을 일부러 망가뜨려 보면(상호 배타 제거, 범위 제거, 의존 관계 제거, DRIFT 종료 코드 제거) 해당 테스트가 실패했다.
+- 공개 API 종단 확인: 반복 `--ids` 2건 성공, `--from-specs` 13건 성공, 재수집한 능력 파일의 13개 모델이 저장된 값과 동일.
+- 전체 186개 테스트와 `pyflakes` 통과. 의존성 없는 `python3` 에서 판정기·플러그인 테스트 65개 통과(플러그인 경로는 표준 라이브러리 유지).
+
+### 정리한 것
+
+- `bench/eval_criteria.py` 의 argparse 와 typer 비교 섹션은 결정이 끝나 삭제했다(비교 결과는 위 "typer 재평가"에 있고 구현은 git 이력 `376dc60` 에 있다).
+- 모든 스크립트에서 `import argparse` 와 `sys.exit(main())` 을 제거했다.

@@ -4,7 +4,6 @@
 실행: <venv>/bin/python bench/bench_candidates.py [--out bench/results.json] [--no-network]
 후보가 설치돼 있지 않으면 해당 항목만 건너뛴다.
 """
-import argparse
 import asyncio
 import concurrent.futures
 import importlib
@@ -16,10 +15,14 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+from typing import Annotated
+
+import typer
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from core import cliutil  # noqa: E402
 from core.contract import load_schema  # noqa: E402
 from core.contract import validate as pydantic_validate  # noqa: E402
 from core.eligibility import Task  # noqa: E402
@@ -246,26 +249,29 @@ def fetch_models_blob():
         return None
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default=str(ROOT / "bench" / "results.json"))
-    ap.add_argument("--no-network", action="store_true")
-    a = ap.parse_args()
+app = cliutil.make_app()
+
+
+@app.command(help=__doc__)
+def main(
+    out: Annotated[pathlib.Path, typer.Option(help="결과 JSON 저장 경로")] = ROOT / "bench" / "results.json",
+    no_network: Annotated[bool, typer.Option("--no-network", help="네트워크 측정을 건너뛴다")] = False,
+):
     OUT["python"] = sys.version.split()[0]
     from importlib.metadata import version
 
     OUT["installed"] = {m: version(m) for m in ("orjson", "jsonschema", "fastjsonschema", "httpx", "pydantic", "pytest", "typer") if have(m)}
-    blob = None if a.no_network else fetch_models_blob()
+    blob = None if no_network else fetch_models_blob()
     section_json(blob)
     section_schema()
     section_model()
     section_startup()
     section_runners()
-    if not a.no_network:
+    if not no_network:
         section_network()
-    pathlib.Path(a.out).write_text(json.dumps(OUT, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    out.write_text(json.dumps(OUT, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps(OUT, indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":
-    main()
+    app()
