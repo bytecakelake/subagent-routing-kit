@@ -88,3 +88,34 @@
 | pydantic | 없음 | 모델로 타입·검증 | 조건부 규칙이 스키마에서 사라짐, lax 변환 | 계약의 원본으로는 부적합 |
 | pytest | 느림 | 풍부한 출력, 확장 | 도입 비용 0 | 팀 선호 문제. 선택 사항 |
 | typer | 느림 | 선언적 CLI | 상호 배타 옵션·다중 값 호환성 상실 | 비추천 |
+
+## 채택 결정과 적용 (2026-11-02)
+
+결정: `orjson`과 `httpx`는 채택, `pydantic`은 `jsonschema` 대용으로 재검토 후 계약 검증기로 채택. 나머지(`jsonschema`, `fastjsonschema`, `pytest`, `typer`)는 보류.
+
+### 적용 범위와 경계
+
+| 범위 | 라이브러리 | 이유 |
+|---|---|---|
+| `core/catalog`, `core/contract`, `adapters/hermes/export_model_map.py` | orjson (`core/jsonio.py` 경유), httpx, pydantic | 개발자 도구와 부모 쪽 검증. 외부 패키지 설치가 가능한 곳 |
+| `core/eligibility/rules.py` 와 플러그인 사본 | **표준 라이브러리 유지** | `sync_plugin.py`가 Hermes 안으로 복사해 실행하므로 Hermes 환경에 패키지가 있다고 가정할 수 없다. 의존성 없는 `python3`에서 판정기·플러그인 테스트 65개가 통과함을 확인 |
+| `adapters/hermes/apply_model_map.py` | 표준 `json` 유지 | 공백이 있는 `json.dumps` 출력을 YAML 줄에 그대로 넣는다. orjson 은 공백 없는 출력이라 결과가 달라진다 |
+
+### 위험 대응
+
+- **orjson 의 큰 정수 무음 변환:** `core/jsonio.py` 한 곳에서만 import 하고, `tests/test_jsonio.py`가 (1) 저장소 JSON 6개의 읽기·들여쓰기 쓰기가 표준 `json`과 동일함, (2) 저장소 데이터에 64비트 초과 정수와 NaN/무한대가 없음, (3) 차이점 동작이 바뀌면 알아챌 수 있도록 현재 동작을 고정한다.
+- **httpx 의 동작 차이:** `core/catalog/_http.py`가 리다이렉트 추종, 4xx/5xx 예외화, 짧은 오류 문자열을 urllib 과 같게 맞춘다. 재시도는 추가하지 않았다(httpx 의 `retries`는 연결 오류만 재시도). 한 클라이언트를 스레드 간에 공유한다. `tests/test_catalog_http.py`가 로컬 서버로 이를 검증한다.
+- **pydantic 의 lax 변환:** 모델은 `strict=True`, `extra="forbid"`. `end`는 `Optional`이 아니라 기본값 `None`으로 두어 생략은 허용하고 명시적 `null`은 스키마와 같이 거부한다.
+
+### pydantic 재평가 결과 (`bench/eval_criteria.py`)
+
+- **판정 일치:** 44건 코퍼스(경계 사례 포함)에서 원본 JSON Schema 와 `core.contract.validate`의 판정이 모두 일치했다. 독립 기준은 `jsonschema` 이다.
+- **스키마 생성의 한계(재확인):** `Report.model_json_schema()`는 조건부 규칙이 없다. 코퍼스에서 모델이 거부하는 3건(`completed`+빈 증거 등)을 생성 스키마는 통과시켰다. 그래서 위임 도구에 넘기는 계약은 손으로 관리하는 원본 JSON Schema 파일이고, 모델은 같은 규칙을 코드로 유지한다. 어긋남은 필드·필수·열거값 구조 검사와 판정 일치 테스트가 막는다.
+- **속도:** 24건 기준 pydantic 187µs, 기존 표준 라이브러리 검증기 357µs, `fastjsonschema` 224µs, `jsonschema` 1206µs. 가장 빠르다. import 는 약 235ms(중앙값)로 `orjson`(약 78ms)보다 무겁다.
+- **오류 메시지:** 영어 문구에 필드 경로(`$.evidence[0].path_or_url`)를 붙여 반환한다. 이전 한국어 메시지는 사라졌다.
+- **`validate()` 의 스키마 파일 읽기:** 모델이 검증하므로 스키마 파일을 읽지 않는다(이전 5ms 문제가 구조적으로 사라짐). 테스트가 이를 고정한다.
+- **API 변경:** `validate(instance, schema=None)`의 `schema` 인자가 없어졌다. 임의 스키마를 넣어 검증하던 호출은 없었고, 이전 구현은 `bench/stdlib_validator.py`로 보존해 벤치 기준선으로만 쓴다.
+
+### 실제 API 종단 확인
+
+`inspect_endpoints.py`가 13건 모두 성공했고, `build_capabilities.py`로 재생성한 `model-capabilities.json`은 저장된 파일과 모델 13개 전부 값이 같았다. `export_model_map.py --check`는 `model-map-proposal.json` 23경로가 바이트 단위로 일치했다.

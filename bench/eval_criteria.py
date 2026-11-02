@@ -20,7 +20,8 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 OUT = {}
 
-from core.contract import load_schema, validate  # noqa: E402
+import stdlib_validator as legacy  # noqa: E402  (bench/ 안의 main 검증기 사본)
+from core.contract import load_schema  # noqa: E402
 
 
 # ---------- A. orjson: 바이트 호환성과 의미 차이 ----------
@@ -93,7 +94,7 @@ def eval_schema_libs():
     }
     msgs = {}
     for k, doc in bad.items():
-        row = {"own": validate(doc)}
+        row = {"own": legacy.validate(doc)}
         v = Draft202012Validator(schema)
         errs = sorted(v.iter_errors(doc), key=lambda e: list(e.path))
         row["jsonschema_all"] = [e.message[:140] for e in errs]
@@ -118,7 +119,7 @@ def eval_schema_libs():
     for k, (s, good, badv) in probes.items():
         row = {}
         try:
-            validate(good, s)
+            legacy.validate(good, s)
             row["own"] = "supported"
         except ValueError:
             row["own"] = "raises ValueError (unsupported keyword)"
@@ -244,80 +245,46 @@ def _have(m):
         return False
 
 
-# ---------- D. pydantic: 스키마 파생과 검증 표현력 ----------
+# ---------- D. pydantic: core.contract 의 실제 구현을 평가 ----------
 def eval_pydantic():
-    from typing import Annotated, Literal, Optional
+    from jsonschema import Draft202012Validator
 
-    from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+    from core import contract
+    from tests.test_output_contract import corpus as test_corpus
 
-    NonEmpty = Annotated[str, Field(min_length=1)]
+    committed = Draft202012Validator(load_schema())
+    docs = test_corpus()
+    res = {"corpus_size": len(docs)}
+    verdicts = [(not contract.validate(d), committed.is_valid(d)) for d in docs]
+    res["pydantic_vs_committed_schema_disagreements"] = [i for i, (a, b) in enumerate(verdicts) if a != b]
+    # 반대 방향: pydantic 이 생성한 스키마를 쓰면 무엇이 사라지는가
+    gen = contract.Report.model_json_schema()
+    gv = Draft202012Validator(gen)
+    lost = [i for i, d in enumerate(docs) if gv.is_valid(d) and contract.validate(d)]
+    res["generated_schema_accepts_what_model_rejects(corpus idx)"] = lost
+    res["generated_schema_has_conditional_rules"] = any(k in gen for k in ("allOf", "if", "oneOf", "anyOf"))
+    res["generated_required_equals_committed"] = gen["required"] == load_schema()["required"]
+    res["generated_uses_$defs_ref"] = "$defs" in gen
+    # lax 모드 대비: 같은 입력을 lax 로 검증하면 통과하는가
+    from pydantic import BaseModel, ConfigDict, ValidationError
 
-    class Evidence(BaseModel):
-        model_config = ConfigDict(extra="forbid", strict=True)
-        path_or_url: str = Field(min_length=1)
-        check: str = Field(min_length=1)
+    class Lax(BaseModel):
+        model_config = ConfigDict(extra="forbid")
+        result: str
+        n: int = 0
 
-    class Report(BaseModel):
-        model_config = ConfigDict(extra="forbid", strict=True)
-        status: Literal["completed", "partial", "blocked"]
-        end: Optional[Literal["criteria met", "insufficient evidence", "permission/environment blocker", "assigned scope exhausted"]] = None
-        result: str = Field(min_length=1)
-        evidence: list[Evidence]
-        artifacts: list[NonEmpty] = []
-        checks: list[NonEmpty] = []
-        unresolved: list[NonEmpty]
-        scope_changes: list[NonEmpty] = []
-
-        @model_validator(mode="after")
-        def conditional(self):
-            if self.status == "completed" and not self.evidence:
-                raise ValueError("completed requires evidence")
-            if self.status in ("partial", "blocked") and not self.unresolved:
-                raise ValueError("partial/blocked requires unresolved")
-            return self
-
-    js = Report.model_json_schema()
-    ours = load_schema()
-    res = {
-        "generated_schema_top_keys": sorted(js),
-        "generated_has_if_then_rules": "allOf" in js or "if" in js,
-        "generated_required": js.get("required"),
-        "our_required": ours["required"],
-        "generated_additionalProperties": js.get("additionalProperties"),
-    }
-    # 같은 코퍼스에서 판정 일치 여부 (strict 모드)
-    sys.path.insert(0, str(ROOT / "bench"))
-    import bench_candidates as bc
-
-    docs = bc.corpus()
-    own = [not validate(d) for d in docs]
-
-    def pyd_ok(d):
+    def lax_ok(d):
         try:
-            Report.model_validate(d)
+            Lax.model_validate(d)
             return True
         except ValidationError:
             return False
 
-    theirs = [pyd_ok(d) for d in docs]
-    res["agreement_with_schema_on_corpus"] = own == theirs
-    res["disagreements"] = [i for i, (a, b) in enumerate(zip(own, theirs)) if a != b]
-    # 조건부 규칙은 코드로만 존재 -> 생성된 스키마를 다른 구현에 넘기면 규칙이 사라진다
-    from jsonschema import Draft202012Validator
-
-    gv = Draft202012Validator(js)
-    d = {"status": "completed", "result": "ok", "evidence": [], "unresolved": []}
-    res["conditional_rule_in_generated_schema(completed+empty evidence valid?)"] = gv.is_valid(d)
-    res["conditional_rule_in_model(completed+empty evidence valid?)"] = pyd_ok(d)
-    # 느슨(lax) 모드의 형변환 위험
-    class Lax(BaseModel):
-        n: int
-
-    res["lax_mode_coercion"] = {"'5' -> int": Lax.model_validate({"n": "5"}).n, "True -> int": Lax.model_validate({"n": True}).n}
+    res["lax_vs_strict"] = {"result=5 (strict rejects)": lax_ok({"result": 5}), "n='5'": lax_ok({"result": "x", "n": "5"}), "n=True": lax_ok({"result": "x", "n": True})}
     try:
-        Report.model_validate({"status": "done"})
+        contract.Report.model_validate({"status": "done"})
     except ValidationError as e:
-        res["sample_error"] = str(e).splitlines()[:6]
+        res["sample_error_style"] = contract.validate({"status": "done"})
     OUT["pydantic"] = res
 
 

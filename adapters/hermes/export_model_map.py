@@ -2,19 +2,19 @@
 """core/spec 의 변형 명세를 Hermes advanced-delegation 의 model_map 옵션으로 변환한다.
 
 원본은 core/spec/variant-specs.json 이다. 이 스크립트는 변환과 Hermes 고유 제약 검사만 한다.
-경로 자격 판정은 core/eligibility 에 맡긴다. 표준 라이브러리만 사용하며 추론 호출은 하지 않는다.
+경로 자격 판정은 core/eligibility 에 맡긴다. JSON 쓰기에 orjson 을 쓰며 추론 호출은 하지 않는다.
 
   python adapters/hermes/export_model_map.py            # model-map-proposal.json 을 다시 만든다
   python adapters/hermes/export_model_map.py --check    # 파일을 건드리지 않고 최신인지만 검사한다
 """
 import argparse
-import json
 import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
+from core import jsonio  # noqa: E402
 from core.eligibility import Task, evaluate, load_capabilities, routes_from_specs  # noqa: E402
 
 PROVIDER = "openrouter"
@@ -74,7 +74,7 @@ def render(specs, default=DEFAULT_ROUTE):
     errs = problems(options, default)
     if errs:
         raise SystemExit("내보내기 중단:\n  " + "\n  ".join(errs))
-    return json.dumps({"options": options, "default": default}, ensure_ascii=False, indent=2) + "\n"
+    return jsonio.dumps({"options": options, "default": default}, indent=True) + "\n"
 
 
 def main(argv=None):
@@ -85,7 +85,7 @@ def main(argv=None):
     ap.add_argument("--check", action="store_true", help="파일을 쓰지 않고 현재 파일이 최신인지 검사")
     a = ap.parse_args(argv)
 
-    specs = json.loads(pathlib.Path(a.specs).read_text(encoding="utf-8"))
+    specs = jsonio.load_path(a.specs)
     text = render(specs, a.default)
     out = pathlib.Path(a.out)
     if a.check:

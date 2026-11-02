@@ -2,7 +2,7 @@
 """OpenRouter 모델 목록에서 하드 규칙 판정에 필요한 모델별 능력만 추려 JSON으로 저장한다.
 
 판정기(core/eligibility)는 이 파일만 읽는다. 공개 API만 사용하며 인증 키가 필요 없다.
-표준 라이브러리만 사용한다.
+orjson 과 httpx 를 사용한다(requirements.txt).
 
 예:
   python core/catalog/build_capabilities.py --specs core/spec/variant-specs.json --out core/spec/model-capabilities.json
@@ -11,10 +11,14 @@
 import argparse
 import datetime
 import hashlib
-import json
 import pathlib
 import sys
-import urllib.request
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))  # 스크립트로 직접 실행해도 core 를 import 할 수 있게 한다
+
+from core import jsonio  # noqa: E402
+from core.catalog import _http  # noqa: E402
 
 MODELS_URL = "https://openrouter.ai/api/v1/models"
 SCHEMA = 1
@@ -41,7 +45,7 @@ def extract_caps(m):
 
 
 def models_in_specs(path):
-    specs = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+    specs = jsonio.load_path(path)
     out = []
     for s in specs:
         if s["model"] not in out:
@@ -54,10 +58,10 @@ def load_models(models_json, timeout):
         raw = pathlib.Path(models_json).read_bytes()
         source = {"file": pathlib.Path(models_json).name, "sha256": hashlib.sha256(raw).hexdigest()}
     else:
-        with urllib.request.urlopen(MODELS_URL, timeout=timeout) as r:
-            raw = r.read()
+        with _http.new_client(timeout) as client:
+            raw = _http.get_bytes(client, MODELS_URL)
         source = {"url": MODELS_URL}
-    data = json.loads(raw)["data"]
+    data = jsonio.loads(raw)["data"]
     return {m["id"]: m for m in data}, source
 
 
@@ -80,7 +84,7 @@ def main(argv=None):
     models, source = load_models(a.models_json, a.timeout)
     caps = build(models, models_in_specs(a.specs))
     doc = {"schema": SCHEMA, "collected_at": a.collected_at, "source": source, "models": caps}
-    pathlib.Path(a.out).write_text(json.dumps(doc, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    pathlib.Path(a.out).write_text(jsonio.dumps(doc, indent=True, sort_keys=True) + "\n", encoding="utf-8")
     print(f"wrote {a.out}: {len(caps)} models, collected_at={a.collected_at}")
     return 0
 

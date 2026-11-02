@@ -20,7 +20,9 @@ import urllib.request
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from core.contract import load_schema, validate  # noqa: E402
+import stdlib_validator as legacy  # noqa: E402  (bench/ 안의 main 검증기 사본)
+from core.contract import load_schema  # noqa: E402
+from core.contract import validate as pydantic_validate  # noqa: E402
 from core.eligibility import Task  # noqa: E402
 
 SPEC_DIR = ROOT / "core" / "spec"
@@ -88,9 +90,13 @@ def corpus():
 def section_schema():
     schema = load_schema()
     docs = corpus()
-    own = [not validate(d, schema) for d in docs]
+    own = [not legacy.validate(d, schema) for d in docs]
     res = {"corpus_size": len(docs), "valid_in_corpus": sum(own)}
-    res["own_validator(preloaded)"] = bench(lambda: [validate(d, schema) for d in docs], 100)
+    res["stdlib_validator(main, preloaded)"] = bench(lambda: [legacy.validate(d, schema) for d in docs], 100)
+    pyd = [not pydantic_validate(d) for d in docs]
+    res["pydantic(core.contract)_agrees"] = own == pyd
+    res["pydantic_disagreements"] = [i for i, (a, b) in enumerate(zip(own, pyd)) if a != b]
+    res["pydantic(core.contract)"] = bench(lambda: [pydantic_validate(d) for d in docs], 100)
     js = have("jsonschema")
     if js:
         from jsonschema import Draft202012Validator

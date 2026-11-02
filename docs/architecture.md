@@ -18,7 +18,7 @@
 core/                      에이전트 중립 (Hermes 용어 금지)
   spec/                    변형 명세, 티어 분류의 스키마와 데이터
   policy/                  라우팅 정책, 작업 계약, 승격·중단 규칙
-  eligibility/             하드 규칙 판정기 (표준 라이브러리만 사용)
+  eligibility/             하드 규칙 판정기 (표준 라이브러리만 사용. 플러그인으로 복사되므로 외부 패키지 금지)
   catalog/                 OpenRouter 모델 API에서 후보·가격·지원 옵션을 수집
 adapters/
   hermes/                  model_map 내보내기, SKILL.md, 설치된 플러그인 검증
@@ -32,7 +32,7 @@ docs/                      설계·근거·검증 기록
 
 - **입력:** 작업 설명 요약, 모달리티, 입력 길이, 쓰기 범위, 위험 신호, 사용 가능한 경로 목록(어댑터가 제공).
 - **출력:** 추천 변형 이름, 거부된 후보와 사유, 부모에게 이관할지 여부.
-- **에이전트 간 보고 형식:** 자식이 부모에게 돌려주는 보고는 JSON이며 `core/spec/output-contract.schema.json`(JSON Schema 2020-12)이 정식 정의입니다. 부모는 `core.contract.validate`로 보고를 검증한 뒤에만 `returned`로 처리합니다. 스키마 통과는 증거의 사실성을 보장하지 않으므로 `verified` 승격은 별도 검증이 필요합니다. 지시서(부모→자식)는 Markdown 양식(`core/policy/task-contract.md`)입니다.
+- **에이전트 간 보고 형식:** 자식이 부모에게 돌려주는 보고는 JSON이며 `core/spec/output-contract.schema.json`(JSON Schema 2020-12)이 정식 정의입니다. 부모는 `core.contract.validate`(pydantic strict 모델)로 보고를 검증한 뒤에만 `returned`로 처리합니다. 모델은 스키마에서 생성하지 않고 코드로 유지하며, 필드·필수·열거값의 일치를 테스트가 검사합니다. pydantic이 생성한 스키마에는 조건부 규칙이 들어가지 않기 때문입니다. 스키마 통과는 증거의 사실성을 보장하지 않으므로 `verified` 승격은 별도 검증이 필요합니다. 지시서(부모→자식)는 Markdown 양식(`core/policy/task-contract.md`)입니다.
 - **원칙:** 코어는 특정 에이전트의 도구 이름이나 설정 형식을 모른다. 경로 목록과 지원 옵션은 어댑터가 주입한다.
 - **하드 규칙(자격 판정):** 미등록 경로 금지, 지원하지 않는 추론·속도 값 금지, 모달리티·길이 한도, 쓰기 충돌, 무료→유료 자동 전환 금지. 신경망 추천으로 우회하지 못한다.
 

@@ -253,53 +253,36 @@
     "/flaky (500,500,200) httpx retries=3": "status=500, server hits=1",
     "/flaky raise_for_status": "HTTPStatusError 500",
     "20 sequential local requests (ms)": {
-      "urllib": 22.0,
-      "httpx(client reuse)": 28.3
+      "urllib": 18.8,
+      "httpx(client reuse)": 26.7
     },
     "http2_extra": "h2 not installed"
   },
   "pydantic": {
-    "generated_schema_top_keys": [
-      "$defs",
-      "additionalProperties",
-      "properties",
-      "required",
-      "title",
-      "type"
+    "corpus_size": 44,
+    "pydantic_vs_committed_schema_disagreements": [],
+    "generated_schema_accepts_what_model_rejects(corpus idx)": [
+      12,
+      18,
+      19
     ],
-    "generated_has_if_then_rules": false,
-    "generated_required": [
-      "status",
-      "result",
-      "evidence",
-      "unresolved"
-    ],
-    "our_required": [
-      "status",
-      "result",
-      "evidence",
-      "unresolved"
-    ],
-    "generated_additionalProperties": false,
-    "agreement_with_schema_on_corpus": true,
-    "disagreements": [],
-    "conditional_rule_in_generated_schema(completed+empty evidence valid?)": true,
-    "conditional_rule_in_model(completed+empty evidence valid?)": false,
-    "lax_mode_coercion": {
-      "'5' -> int": 5,
-      "True -> int": 1
+    "generated_schema_has_conditional_rules": false,
+    "generated_required_equals_committed": true,
+    "generated_uses_$defs_ref": true,
+    "lax_vs_strict": {
+      "result=5 (strict rejects)": false,
+      "n='5'": true,
+      "n=True": true
     },
-    "sample_error": [
-      "4 validation errors for Report",
-      "status",
-      "  Input should be 'completed', 'partial' or 'blocked' [type=literal_error, input_value='done', input_type=str]",
-      "    For further information visit https://errors.pydantic.dev/2.14/v/literal_error",
-      "result",
-      "  Field required [type=missing, input_value={'status': 'done'}, input_type=dict]"
+    "sample_error_style": [
+      "$.status: Input should be 'completed', 'partial' or 'blocked'",
+      "$.result: Field required",
+      "$.evidence: Field required",
+      "$.unresolved: Field required"
     ]
   },
   "pytest": {
-    "existing_unittest_suite_unmodified": "131 passed, 33 subtests passed in 2.30s",
+    "existing_unittest_suite_unmodified": "155 passed, 33 subtests passed in 4.85s",
     "failure_output_lines": {
       "unittest": 20,
       "pytest": 33
@@ -307,7 +290,7 @@
     "unittest_failure_excerpt": [
       "----------------------------------------------------------------------",
       "Traceback (most recent call last):",
-      "  File \"/tmp/tmp_hsp548c/test_fail.py\", line 4, in test_dict",
+      "  File \"/tmp/tmp_a7w9jue/test_fail.py\", line 4, in test_dict",
       "    self.assertEqual({'status': 'blocked', 'unresolved': ['a'], 'x': 1}, {'status': 'blocked', 'unresolved': ['b'], 'x': 1})",
       "    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
       "AssertionError: {'status': 'blocked', 'unresolved': ['a'], 'x': 1} != {'status': 'blocked', 'unresolved': ['b'], 'x': 1}",

@@ -26,7 +26,8 @@ core/                         에이전트 중립 (종속 용어 금지, 자동 
   policy/                     운영 정책, 라우팅 정책, 작업 계약 양식
   catalog/                    OpenRouter 엔드포인트 조회, 모델 능력 수집
   eligibility/                하드 규칙 판정기 (경로 자격, 쓰기 범위 충돌)
-  contract/                   자식 보고(JSON)의 스키마 검증기 (표준 라이브러리만 사용)
+  contract/                   자식 보고(JSON)의 검증기 (pydantic, strict). 원본 계약은 spec/output-contract.schema.json
+  jsonio.py                   JSON 읽기·쓰기 래퍼 (orjson). 표준 json 과의 차이를 한 곳에서 관리
 adapters/
   hermes/                     Hermes용 스킬, model_map 내보내기·검사, 스킬 동기화
 docs/                         설계, 조사 근거, 검증 기록
@@ -38,13 +39,16 @@ tools/                        저장소 검사 스크립트
 
 ## 사용
 
-모두 Python 3 표준 라이브러리만 사용합니다.
+Python 3.13 에서 검증했습니다. 실행에는 `orjson`, `httpx`, `pydantic`이 필요합니다. 판정기(`core/eligibility`), 플러그인, 정책 동기화·검사 스크립트는 표준 라이브러리만 쓰므로 Hermes 안에서는 추가 설치가 필요 없습니다.
 
 ```bash
+# 설치 (개발·테스트까지 하려면 requirements-dev.txt)
+pip install -r requirements.txt
+
 # 모델 엔드포인트(가격, 지원 파라미터) 조회. 인증 키 불필요
 python core/catalog/inspect_endpoints.py --from-specs core/spec/variant-specs.json --out endpoints.json
 
-# 단위 테스트 (pytest 불필요)
+# 단위 테스트 (pytest 불필요, unittest). requirements-dev.txt 의 jsonschema 가 있으면 계약 검증기와 스키마의 판정 일치도 검사
 python -m unittest discover -s tests -t .
 
 # 모델 능력 다시 수집 (공개 API). 수집 후 테스트로 명세와의 일치를 확인
