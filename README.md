@@ -22,10 +22,11 @@
 
 ```text
 core/                         에이전트 중립 (종속 용어 금지, 자동 검사)
-  spec/                       변형 명세, 티어 분류, 비용 데이터
+  spec/                       변형 명세, 티어 분류, 비용 데이터, 출력 계약 스키마(output-contract.schema.json)
   policy/                     운영 정책, 라우팅 정책, 작업 계약 양식
   catalog/                    OpenRouter 엔드포인트 조회, 모델 능력 수집
   eligibility/                하드 규칙 판정기 (경로 자격, 쓰기 범위 충돌)
+  contract/                   자식 보고(JSON)의 스키마 검증기 (표준 라이브러리만 사용)
 adapters/
   hermes/                     Hermes용 스킬, model_map 내보내기·검사, 스킬 동기화
 docs/                         설계, 조사 근거, 검증 기록

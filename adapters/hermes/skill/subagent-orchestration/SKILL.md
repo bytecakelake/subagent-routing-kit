@@ -13,7 +13,7 @@ metadata:
 
 # Cost- and evidence-driven subagent operation (Hermes adapter)
 
-Thin adapter that applies the agent-neutral policy to Hermes `delegate_task`. Policy body: `references/orchestration-policy.md`. Tier-to-variant mapping: `references/routing-policy.md`. Handoff template: `templates/task-contract.md`. Read the policy body before delegating. This skill is behavioral guidance; it does not enforce a runtime router, permission control, or spend limit.
+Thin adapter that applies the agent-neutral policy to Hermes `delegate_task`. Policy body: `references/orchestration-policy.md`. Tier-to-variant mapping: `references/routing-policy.md`. Handoff template: `templates/task-contract.md`. Child report schema: `templates/output-contract.schema.json` (validate returned reports against it). Read the policy body before delegating. This skill is behavioral guidance; it does not enforce a runtime router, permission control, or spend limit.
 
 ## When to Use
 

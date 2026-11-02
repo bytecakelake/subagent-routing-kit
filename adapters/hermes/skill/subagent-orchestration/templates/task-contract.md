@@ -50,4 +50,10 @@ Use only for authority decisions (spend, external publishing, deletion, scope, p
 }
 ```
 
-This is an output format example. If you use an output schema, make required only the fields the parent actually reads, and verify enum/status values and the factuality of evidence separately.
+The formal definition is `core/spec/output-contract.schema.json` (JSON Schema 2020-12); the example above is illustrative and the schema is authoritative. Optional fields: `end` (one of the four End values) and `scope_changes`. Rules the schema enforces: `completed` requires non-empty `evidence`; `partial` and `blocked` require non-empty `unresolved`; unknown fields are rejected.
+
+Use it as follows:
+
+- Put the schema in the task contract's Report field, or pass it as the delegation tool's output schema when the tool supports one. Required fields are only those the parent reads.
+- The parent validates every returned report against the schema before treating it as `returned` (`core.contract.validate`). A schema failure means the report is unusable; ask the child to resend, do not repair it by guessing.
+- Passing the schema does not make a report `verified`. Check the factuality of evidence, artifact paths, and test results separately.

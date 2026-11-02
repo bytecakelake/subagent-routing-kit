@@ -14,6 +14,7 @@ MAPPING = {
     ROOT / "core" / "policy" / "orchestration-policy.md": SKILL / "references" / "orchestration-policy.md",
     ROOT / "core" / "policy" / "routing-policy.md": SKILL / "references" / "routing-policy.md",
     ROOT / "core" / "policy" / "task-contract.md": SKILL / "templates" / "task-contract.md",
+    ROOT / "core" / "spec" / "output-contract.schema.json": SKILL / "templates" / "output-contract.schema.json",
 }
 
 
