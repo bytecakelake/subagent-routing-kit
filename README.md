@@ -40,7 +40,18 @@ tools/                        저장소 검사 스크립트
 
 ## 사용
 
-Python 3.13 에서 검증했습니다. 실행에는 `orjson`, `httpx`, `pydantic`, `typer`가 필요합니다. 명령줄 스크립트는 모두 typer로 만들었고, 값 검사(상호 배타, 의존 관계, 범위, 파일 존재)는 `core/cliutil.py`의 pydantic 모델이 맡습니다. 판정기(`core/eligibility`)와 Hermes 안에서 실행되는 플러그인은 표준 라이브러리만 쓰므로 Hermes에는 추가 설치가 필요 없습니다.
+Python 3.13과 3.14 에서 검증했습니다(테스트는 리눅스 3.13.16, 3.14.10에서 통과, `apply_model_map.py --apply`는 Windows의 Hermes 전용 파이썬 3.14.9 로 실제 적용을 확인). 실행에는 `orjson`, `httpx`, `pydantic`, `typer`가 필요합니다. 명령줄 스크립트는 모두 typer로 만들었고, 값 검사(상호 배타, 의존 관계, 범위, 파일 존재)는 `core/cliutil.py`의 pydantic 모델이 맡습니다. 판정기(`core/eligibility`)와 Hermes 안에서 실행되는 플러그인은 표준 라이브러리만 쓰므로 Hermes에는 추가 설치가 필요 없습니다.
+
+Windows 에서 Hermes 와 같은 파이썬으로 쓰려면 Hermes 전용 기본 파이썬으로 저장소 밖에 가상환경을 만드십시오. Hermes 자체 환경에는 `orjson`, `typer` 가 없고 `pydantic` 이 하한보다 낮아서 그 환경을 직접 쓰거나 패키지를 설치하면 안 됩니다.
+
+```powershell
+$hpy = (Get-ChildItem "$env:LOCALAPPDATA\hermes\tools\python-3.14.9*\python.exe").FullName
+& $hpy -m venv "$env:LOCALAPPDATA\rk-venv"
+$py = "$env:LOCALAPPDATA\rk-venv\Scripts\python.exe"
+& $py -m pip install -r requirements.txt
+& $py adapters\hermes\apply_model_map.py            # 드라이런: 아무것도 쓰지 않음
+& $py adapters\hermes\apply_model_map.py --apply    # 백업 → config set → read-back
+```
 
 ```bash
 # 설치 (개발·테스트까지 하려면 requirements-dev.txt)
