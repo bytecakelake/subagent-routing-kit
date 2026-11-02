@@ -52,6 +52,18 @@ class YamlBlockTest(unittest.TestCase):
         first = self.options[0]
         self.assertIn(f"description: {json.dumps(first['description'], ensure_ascii=False)}", self.block)
 
+    def test_inline_values_are_valid_json_and_equal_the_option_values(self):
+        # 공백 없는 JSON 도 YAML 흐름 표기로 유효하다. 줄마다 값을 JSON 으로 읽어 원본과 비교한다.
+        rows = {}
+        for line in self.block.splitlines():
+            key, sep, value = line.strip().partition(": ")
+            if sep and key in ("description", "provider", "model", "reasoning_effort", "service_tier", "fallback_providers"):
+                rows.setdefault(key, []).append(value)
+        for key, values in rows.items():
+            want = [o[key] for o in self.options if o.get(key) or (key == "fallback_providers" and o.get(key))]
+            got = [json.loads(v) for v in values if v != "[]"]
+            self.assertEqual(got, [w for w in want if w], key)
+
     def test_block_is_ascii_yaml_safe(self):
         # 값에 탭이 섞이면 YAML 이 깨진다. 명세 값 자체를 검사한다.
         for option in self.options:

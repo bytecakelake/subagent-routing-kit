@@ -26,7 +26,9 @@ core/                         에이전트 중립 (종속 용어 금지, 자동 
   policy/                     운영 정책, 라우팅 정책, 작업 계약 양식
   catalog/                    OpenRouter 엔드포인트 조회, 모델 능력 수집
   eligibility/                하드 규칙 판정기 (경로 자격, 쓰기 범위 충돌)
-  contract/                   자식 보고(JSON)의 스키마 검증기 (표준 라이브러리만 사용)
+  contract/                   자식 보고(JSON)의 검증기 (pydantic, strict). 원본 계약은 spec/output-contract.schema.json
+  jsonio.py                   JSON 읽기·쓰기 래퍼 (orjson). 표준 json 과의 차이를 한 곳에서 관리
+  cliutil.py                  명령줄 공통: typer 앱 생성, pydantic 인자 검증 (오류는 종료 코드 2)
 adapters/
   hermes/                     Hermes용 스킬, model_map 내보내기·검사, 스킬 동기화
 docs/                         설계, 조사 근거, 검증 기록
@@ -38,13 +40,29 @@ tools/                        저장소 검사 스크립트
 
 ## 사용
 
-모두 Python 3 표준 라이브러리만 사용합니다.
+Python 3.13과 3.14 에서 검증했습니다(테스트는 리눅스 3.13.16, 3.14.10에서 통과, `apply_model_map.py --apply`는 Windows의 Hermes 전용 파이썬 3.14.9 로 실제 적용을 확인). 실행에는 `orjson`, `httpx`, `pydantic`, `typer`가 필요합니다. 명령줄 스크립트는 모두 typer로 만들었고, 값 검사(상호 배타, 의존 관계, 범위, 파일 존재)는 `core/cliutil.py`의 pydantic 모델이 맡습니다. 판정기(`core/eligibility`)와 Hermes 안에서 실행되는 플러그인은 표준 라이브러리만 쓰므로 Hermes에는 추가 설치가 필요 없습니다.
+
+Windows 에서 Hermes 와 같은 파이썬으로 쓰려면 Hermes 전용 기본 파이썬으로 저장소 밖에 가상환경을 만드십시오. Hermes 자체 환경에는 `orjson`, `typer` 가 없고 `pydantic` 이 하한보다 낮아서 그 환경을 직접 쓰거나 패키지를 설치하면 안 됩니다.
+
+```powershell
+$hpy = (Get-ChildItem "$env:LOCALAPPDATA\hermes\tools\python-3.14.9*\python.exe").FullName
+& $hpy -m venv "$env:LOCALAPPDATA\rk-venv"
+$py = "$env:LOCALAPPDATA\rk-venv\Scripts\python.exe"
+& $py -m pip install -r requirements.txt
+& $py adapters\hermes\apply_model_map.py            # 드라이런: 아무것도 쓰지 않음
+& $py adapters\hermes\apply_model_map.py --apply    # 백업 → config set → read-back
+```
 
 ```bash
+# 설치 (개발·테스트까지 하려면 requirements-dev.txt)
+pip install -r requirements.txt
+
 # 모델 엔드포인트(가격, 지원 파라미터) 조회. 인증 키 불필요
 python core/catalog/inspect_endpoints.py --from-specs core/spec/variant-specs.json --out endpoints.json
+# 모델을 직접 지정할 때는 옵션을 반복합니다 (공백으로 이은 `--ids a b` 는 지원하지 않습니다)
+python core/catalog/inspect_endpoints.py --ids openai/gpt-6-luna --ids nvidia/nemotron-3.5-super-vl:free --out endpoints.json
 
-# 단위 테스트 (pytest 불필요)
+# 단위 테스트 (pytest 불필요, unittest). requirements-dev.txt 의 jsonschema 가 있으면 계약 검증기와 스키마의 판정 일치도 검사
 python -m unittest discover -s tests -t .
 
 # 모델 능력 다시 수집 (공개 API). 수집 후 테스트로 명세와의 일치를 확인
@@ -101,7 +119,7 @@ d.status, d.eligible, d.rejected   # 상태, 통과 경로, 경로별 거부 사
 
 ## model_map 적용
 
-`adapters/hermes/model-map-proposal.json`(23경로)을 설치된 Hermes 의 `delegation.backends.model_map` 에 넣는 순서입니다. `apply_model_map.py` 는 제안 파일을 먼저 검증하고, `config.yaml` 을 백업한 뒤 `hermes config set` 을 두 번(경로 목록, 기본 backend) 실행하고, 마지막에 설정을 다시 읽어 확인합니다. 표준 라이브러리만 쓰며 `--apply` 없이는 아무것도 바꾸지 않습니다.
+`adapters/hermes/model-map-proposal.json`(23경로)을 설치된 Hermes 의 `delegation.backends.model_map` 에 넣는 순서입니다. `apply_model_map.py` 는 제안 파일을 먼저 검증하고, `config.yaml` 을 백업한 뒤 `hermes config set` 을 두 번(경로 목록, 기본 backend) 실행하고, 마지막에 설정을 다시 읽어 확인합니다. `--apply` 없이는 아무것도 바꾸지 않습니다. `--restart` 는 `--apply` 와, `--restart-all` 은 `--restart` 와 함께 써야 합니다.
 
 1. `python adapters/hermes/export_model_map.py --check` — 제안 파일이 명세와 일치하는지 확인
 2. `python adapters/hermes/apply_model_map.py` — 23경로·기본값·이름 규칙·추론 강도 검사(쓰기 없음)

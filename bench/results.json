@@ -1,0 +1,146 @@
+{
+  "python": "3.13.16",
+  "installed": {
+    "orjson": "3.13.0",
+    "jsonschema": "4.26.0",
+    "fastjsonschema": "2.22.3",
+    "httpx": "0.28.1",
+    "pydantic": "2.14.2",
+    "pytest": "9.2.0",
+    "typer": "0.27.3"
+  },
+  "json": {
+    "spec_all_files": {
+      "bytes": 24814,
+      "json.loads": {
+        "median_us": 153.49,
+        "min_us": 151.23
+      },
+      "orjson.loads": {
+        "median_us": 55.53,
+        "min_us": 55.02
+      }
+    },
+    "variant-specs.json": {
+      "bytes": 12288,
+      "json.loads": {
+        "median_us": 63.39,
+        "min_us": 62.84
+      },
+      "orjson.loads": {
+        "median_us": 23.04,
+        "min_us": 22.74
+      }
+    },
+    "models_api_snapshot": {
+      "bytes": 805391,
+      "json.loads": {
+        "median_us": 8281.66,
+        "min_us": 8193.16
+      },
+      "orjson.loads": {
+        "median_us": 3768.84,
+        "min_us": 3744.88
+      }
+    }
+  },
+  "schema_validation": {
+    "corpus_size": 24,
+    "valid_in_corpus": 6,
+    "pydantic(core.contract)": {
+      "median_us": 190.44,
+      "min_us": 189.33
+    },
+    "jsonschema_agrees_with_pydantic": true,
+    "jsonschema_disagreements": [],
+    "jsonschema(prebuilt)": {
+      "median_us": 1269.01,
+      "min_us": 1257.61
+    },
+    "fastjsonschema_agrees_with_pydantic": true,
+    "fastjsonschema_disagreements": [],
+    "fastjsonschema(compiled)": {
+      "median_us": 222.94,
+      "min_us": 222.27
+    }
+  },
+  "data_model": {
+    "dataclass(frozen)": {
+      "median_us": 1.62,
+      "min_us": 1.62
+    },
+    "pydantic.BaseModel(frozen)": {
+      "median_us": 1.49,
+      "min_us": 1.47
+    },
+    "pydantic.model_validate(dict)": {
+      "median_us": 1.65,
+      "min_us": 1.64
+    }
+  },
+  "startup_import_cost": {
+    "python -c pass": {
+      "median_ms": 31.8,
+      "min_ms": 29.8
+    },
+    "import json,urllib.request,argparse (stdlib)": {
+      "median_ms": 91.6,
+      "min_ms": 87.8
+    },
+    "import orjson": {
+      "median_ms": 78.0,
+      "min_ms": 73.2
+    },
+    "import jsonschema": {
+      "median_ms": 640.9,
+      "min_ms": 619.0
+    },
+    "import fastjsonschema": {
+      "median_ms": 177.2,
+      "min_ms": 137.9
+    },
+    "import httpx": {
+      "median_ms": 392.5,
+      "min_ms": 342.4
+    },
+    "import pydantic": {
+      "median_ms": 224.5,
+      "min_ms": 209.2
+    },
+    "import typer": {
+      "median_ms": 375.0,
+      "min_ms": 322.9
+    }
+  },
+  "test_runners": {
+    "unittest": {
+      "seconds": 7.3,
+      "tail": "OK"
+    },
+    "pytest": {
+      "seconds": 8.52,
+      "tail": "154 passed, 33 subtests passed in 6.44s"
+    }
+  },
+  "network": {
+    "urls": 13,
+    "urllib+ThreadPool(6)": {
+      "median_s": 0.21,
+      "min_s": 0.17,
+      "errors": 0,
+      "bytes": 208454
+    },
+    "httpx.Client+ThreadPool(6)": {
+      "median_s": 0.24,
+      "min_s": 0.19,
+      "errors": 0,
+      "bytes": 208454
+    },
+    "httpx.AsyncClient(sem 6)": {
+      "median_s": 0.29,
+      "min_s": 0.22,
+      "errors": 0,
+      "bytes": 208454
+    }
+  }
+}

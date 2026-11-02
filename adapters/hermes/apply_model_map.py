@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 """model-map-proposal.json 을 설치된 Hermes 의 delegation.backends.model_map 에 적용한다.
 
-  python adapters/hermes/apply_model_map.py                 # 검증 + 적용 예정 요약 (아무것도 쓰지 않음)
-  python adapters/hermes/apply_model_map.py --print-yaml    # config.yaml 에 들어갈 블록 출력
-  python adapters/hermes/apply_model_map.py --apply         # 백업 → hermes config set → read-back 검증
-  python adapters/hermes/apply_model_map.py --apply --restart   # 위 작업 후 게이트웨이 재시작까지
-  python adapters/hermes/apply_model_map.py --apply -p biser    # 다른 프로필에 적용
+\b
+python adapters/hermes/apply_model_map.py                 # 검증 + 적용 예정 요약 (아무것도 쓰지 않음)
+python adapters/hermes/apply_model_map.py --print-yaml    # config.yaml 에 들어갈 블록 출력
+python adapters/hermes/apply_model_map.py --apply         # 백업 → hermes config set → read-back 검증
+python adapters/hermes/apply_model_map.py --apply --restart   # 위 작업 후 게이트웨이 재시작까지
+python adapters/hermes/apply_model_map.py --apply -p biser    # 다른 프로필에 적용
 
 `hermes` 실행 파일은 PATH, %LOCALAPPDATA%\\hermes\\bin\\hermes.exe, 또는 --hermes 순으로 찾는다.
 설정 파일은 --config, HERMES_HOME, %LOCALAPPDATA%\\hermes, ~/.hermes 순으로 찾는다.
-표준 라이브러리만 사용하며 추론 호출은 하지 않는다. 실제 설정 변경은 --apply 에서만 일어난다.
+JSON 쓰기에 orjson 을 쓰며 추론 호출은 하지 않는다. 실제 설정 변경은 --apply 에서만 일어난다.
 """
-import argparse
-import json
 import os
 import pathlib
 import re
@@ -20,11 +19,16 @@ import shutil
 import subprocess
 import sys
 import time
+from typing import Annotated
+
+import typer
+from pydantic import FilePath, model_validator
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from adapters.hermes.export_model_map import problems  # noqa: E402
+from core import cliutil, jsonio  # noqa: E402
 
 PROPOSAL = ROOT / "adapters" / "hermes" / "model-map-proposal.json"
 #: 설치된 advanced-delegation 플러그인의 검증 규칙(store.py::validate_route)과 model_map.py 가 읽는 키.
@@ -36,7 +40,7 @@ KEYS = frozenset({"name", "description", "provider", "model", "base_url", "api_k
 
 
 def load(path=PROPOSAL):
-    return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+    return jsonio.load_path(path)
 
 
 def plugin_problems(options, default):
@@ -79,14 +83,14 @@ def yaml_block(options, default):
     lines = ["delegation:", "  backend: model_map", "  backends:", "    model_map:", "      options:"]
     for o in options:
         lines.append(f"        - name: {o['name']}")
-        lines.append(f"          description: {json.dumps(o['description'], ensure_ascii=False)}")
+        lines.append(f"          description: {jsonio.dumps(o['description'])}")
         for key in ("provider", "base_url", "model", "api_key", "api_mode",
                     "reasoning_effort", "service_tier"):
             if o.get(key):
-                lines.append(f"          {key}: {json.dumps(o[key], ensure_ascii=False)}")
+                lines.append(f"          {key}: {jsonio.dumps(o[key])}")
         if "fallback_providers" in o:
             lines.append("          fallback_providers: []" if not o["fallback_providers"]
-                         else f"          fallback_providers: {json.dumps(o['fallback_providers'], ensure_ascii=False)}")
+                         else f"          fallback_providers: {jsonio.dumps(o['fallback_providers'])}")
     lines.append(f"      default: {default}")
     return "\n".join(lines) + "\n"
 
@@ -154,21 +158,46 @@ def restart_gateway(exe, profile, all_profiles=False):
     return code2
 
 
-def main(argv=None):
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--proposal", default=str(PROPOSAL), help="model-map-proposal.json 경로")
-    ap.add_argument("--print-yaml", action="store_true", help="config.yaml 에 들어갈 블록을 출력")
-    ap.add_argument("--apply", action="store_true", help="백업 후 hermes config set 으로 실제 적용")
-    ap.add_argument("--restart", action="store_true", help="적용 후 게이트웨이 재시작까지 수행")
-    ap.add_argument("--restart-all", action="store_true", help="재시작 시 모든 프로필의 게이트웨이를 종료")
-    ap.add_argument("--yes", "-y", action="store_true", help="재시작 확인 질문을 건너뛴다")
-    ap.add_argument("--profile", "-p", default="", help="대상 Hermes 프로필(기본: 활성 프로필)")
-    ap.add_argument("--hermes", default="", help="hermes 실행 파일 경로")
-    ap.add_argument("--config", default="", help="백업·확인에 쓸 config.yaml 경로")
-    ap.add_argument("--backup-dir", default="", help="백업 파일을 둘 폴더(기본: config.yaml 과 같은 폴더)")
-    a = ap.parse_args(argv)
-    if a.restart and not a.apply:
-        ap.error("--restart 는 --apply 와 함께 쓰십시오 (적용 없이 재시작만 하지 않습니다).")
+class Args(cliutil.Args):
+    proposal: FilePath
+    print_yaml: bool
+    apply: bool
+    restart: bool
+    restart_all: bool
+    yes: bool
+    profile: str
+    hermes: str
+    config: str
+    backup_dir: str
+
+    @model_validator(mode="after")
+    def _dependent_flags(self):
+        if self.restart and not self.apply:
+            raise ValueError("--restart 는 --apply 와 함께 쓰십시오 (적용 없이 재시작만 하지 않습니다).")
+        if self.restart_all and not self.restart:
+            raise ValueError("--restart-all 은 --restart 와 함께 쓰십시오 (재시작하지 않으면 효과가 없습니다).")
+        return self
+
+
+app = cliutil.make_app()
+
+
+@app.command(help=__doc__)
+def main(
+    proposal: Annotated[pathlib.Path, typer.Option(help="model-map-proposal.json 경로", show_default="adapters/hermes/model-map-proposal.json")] = PROPOSAL,
+    print_yaml: Annotated[bool, typer.Option("--print-yaml", help="config.yaml 에 들어갈 블록을 출력")] = False,
+    apply: Annotated[bool, typer.Option("--apply", help="백업 후 hermes config set 으로 실제 적용")] = False,
+    restart: Annotated[bool, typer.Option("--restart", help="적용 후 게이트웨이 재시작까지 수행")] = False,
+    restart_all: Annotated[bool, typer.Option("--restart-all", help="재시작 시 모든 프로필의 게이트웨이를 종료")] = False,
+    yes: Annotated[bool, typer.Option("--yes", "-y", help="재시작 확인 질문을 건너뛴다")] = False,
+    profile: Annotated[str, typer.Option("--profile", "-p", help="대상 Hermes 프로필(기본: 활성 프로필)")] = "",
+    hermes: Annotated[str, typer.Option(help="hermes 실행 파일 경로")] = "",
+    config: Annotated[str, typer.Option(help="백업·확인에 쓸 config.yaml 경로")] = "",
+    backup_dir: Annotated[str, typer.Option(help="백업 파일을 둘 폴더(기본: config.yaml 과 같은 폴더)")] = "",
+):
+    a = cliutil.parse_args(Args, proposal=proposal, print_yaml=print_yaml, apply=apply, restart=restart,
+                           restart_all=restart_all, yes=yes, profile=profile, hermes=hermes, config=config,
+                           backup_dir=backup_dir)
 
     data = load(a.proposal)
     options, default = data["options"], data["default"]
@@ -176,7 +205,7 @@ def main(argv=None):
 
     if a.print_yaml:
         sys.stdout.write(yaml_block(options, default))
-        return 0
+        return
 
     models = {}
     for o in options:
@@ -187,18 +216,18 @@ def main(argv=None):
 
     if not a.apply:
         print("\n아무것도 쓰지 않았습니다. 실제 적용은 --apply, 블록 확인은 --print-yaml.")
-        return 0
+        return
 
     exe, cfg = hermes_exe(a.hermes), config_path(a.config)
     if not cfg.exists():
         raise SystemExit(f"config.yaml 을 찾지 못했습니다: {cfg}\n  --config 로 지정하십시오.")
-    backup_dir = pathlib.Path(a.backup_dir) if a.backup_dir else cfg.parent
-    backup_dir.mkdir(parents=True, exist_ok=True)
-    backup = backup_dir / f"config.yaml.before-model-map-{time.strftime('%Y%m%d-%H%M%S')}"
+    target_dir = pathlib.Path(a.backup_dir) if a.backup_dir else cfg.parent
+    target_dir.mkdir(parents=True, exist_ok=True)
+    backup = target_dir / f"config.yaml.before-model-map-{time.strftime('%Y%m%d-%H%M%S')}"
     shutil.copy2(cfg, backup)
     print(f"백업: {backup}")
 
-    payload = json.dumps({"options": options, "default": default}, ensure_ascii=False)
+    payload = jsonio.dumps({"options": options, "default": default})
     for step in (["config", "set", "delegation.backends.model_map", payload],
                  ["config", "set", "delegation.backend", "model_map"]):
         code, out = run(exe, a.profile, step)
@@ -211,11 +240,11 @@ def main(argv=None):
     if bad:
         print("read-back 불일치:", *bad, sep="\n  ")
         print(f"  되돌리려면: copy \"{backup}\" \"{cfg}\"")
-        return 1
+        raise typer.Exit(1)
     print(f"read-back 확인: {len(options)}개 경로와 기본 경로 {default} 모두 설정에 있음")
     if not a.restart:
         print("다음: hermes gateway restart -y   (또는 앱에서 재시작) → 새 세션에서 option 목록 확인")
-        return 0
+        return
 
     if not a.yes:
         try:
@@ -224,14 +253,13 @@ def main(argv=None):
             answer = ""
         if answer.strip().lower() not in ("y", "yes", "예"):
             print("재시작을 생략했습니다. 나중에: hermes gateway restart -y")
-            return 0
+            return
     code = restart_gateway(exe, a.profile, a.restart_all)
     if code != 0:
         print("재시작 확인에 실패했습니다. `hermes gateway status` 로 직접 확인하십시오.")
-        return 1
+        raise typer.Exit(1)
     print("재시작 완료. 새 세션에서 delegate_task 의 option 목록에 17개 이름이 보이는지 확인하십시오.")
-    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    app()

@@ -1,0 +1,4 @@
+# 개발·검증용. 설치: pip install -r requirements-dev.txt
+-r requirements.txt
+# 계약 검증기(pydantic)와 JSON Schema 파일이 같은 판정을 내리는지 독립적으로 확인하는 기준 구현. 없으면 해당 테스트는 건너뛴다.
+jsonschema>=4.26,<5
