@@ -20,7 +20,6 @@ import urllib.request
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-import stdlib_validator as legacy  # noqa: E402  (bench/ 안의 main 검증기 사본)
 from core.contract import load_schema  # noqa: E402
 from core.contract import validate as pydantic_validate  # noqa: E402
 from core.eligibility import Task  # noqa: E402
@@ -90,19 +89,15 @@ def corpus():
 def section_schema():
     schema = load_schema()
     docs = corpus()
-    own = [not legacy.validate(d, schema) for d in docs]
+    own = [not pydantic_validate(d) for d in docs]
     res = {"corpus_size": len(docs), "valid_in_corpus": sum(own)}
-    res["stdlib_validator(main, preloaded)"] = bench(lambda: [legacy.validate(d, schema) for d in docs], 100)
-    pyd = [not pydantic_validate(d) for d in docs]
-    res["pydantic(core.contract)_agrees"] = own == pyd
-    res["pydantic_disagreements"] = [i for i, (a, b) in enumerate(zip(own, pyd)) if a != b]
     res["pydantic(core.contract)"] = bench(lambda: [pydantic_validate(d) for d in docs], 100)
     js = have("jsonschema")
     if js:
         from jsonschema import Draft202012Validator
         v = Draft202012Validator(schema)
         theirs = [v.is_valid(d) for d in docs]
-        res["jsonschema_agrees"] = own == theirs
+        res["jsonschema_agrees_with_pydantic"] = own == theirs
         res["jsonschema_disagreements"] = [i for i, (a, b) in enumerate(zip(own, theirs)) if a != b]
         res["jsonschema(prebuilt)"] = bench(lambda: [v.is_valid(d) for d in docs], 100)
     fj = have("fastjsonschema")
@@ -117,7 +112,7 @@ def section_schema():
                 return False
 
         theirs = [ok(d) for d in docs]
-        res["fastjsonschema_agrees"] = own == theirs
+        res["fastjsonschema_agrees_with_pydantic"] = own == theirs
         res["fastjsonschema_disagreements"] = [i for i, (a, b) in enumerate(zip(own, theirs)) if a != b]
         res["fastjsonschema(compiled)"] = bench(lambda: [ok(d) for d in docs], 100)
     OUT["schema_validation"] = res

@@ -49,9 +49,9 @@ class Report(BaseModel):
         return self
 
 
-def load_schema(path=None):
+def load_schema():
     """위임 도구에 넘기거나 검토할 JSON Schema 를 읽는다. validate() 는 이 파일을 읽지 않는다."""
-    return jsonio.load_path(path or SCHEMA_PATH)
+    return jsonio.load_path(SCHEMA_PATH)
 
 
 def _path(loc):
@@ -69,11 +69,3 @@ def validate(instance):
         return [f"{_path(err['loc'])}: {err['msg']}" for err in e.errors()]
     return []
 
-
-def parse_and_validate(text):
-    """자식이 돌려준 JSON 문자열을 파싱하고 검증한다. (값, 위반 목록)을 반환한다."""
-    try:
-        value = jsonio.loads(text)
-    except jsonio.JSONDecodeError as e:
-        return None, [f"$: JSON 이 아닙니다 ({e.msg}, {e.lineno}행 {e.colno}열)"]
-    return value, validate(value)

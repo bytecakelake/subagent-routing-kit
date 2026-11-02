@@ -12,9 +12,6 @@ import pathlib
 
 import orjson
 
-JSONDecodeError = orjson.JSONDecodeError  # json.JSONDecodeError 의 하위 클래스
-
-
 def loads(data):
     """str 또는 bytes 를 파싱한다."""
     return orjson.loads(data)

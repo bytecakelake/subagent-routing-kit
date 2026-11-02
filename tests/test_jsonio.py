@@ -57,11 +57,8 @@ class KnownDifferences(unittest.TestCase):
                 jsonio.dumps(bad)
 
     def test_nan_literal_is_rejected_on_read(self):
-        with self.assertRaises(jsonio.JSONDecodeError):
+        with self.assertRaises(json.JSONDecodeError):  # orjson 의 오류는 표준 json 의 오류 하위 클래스
             jsonio.loads("[NaN]")
-
-    def test_decode_error_is_a_stdlib_decode_error(self):
-        self.assertTrue(issubclass(jsonio.JSONDecodeError, json.JSONDecodeError))
 
 
 class RepoDataIsSafeForOrjson(unittest.TestCase):

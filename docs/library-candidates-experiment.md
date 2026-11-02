@@ -71,11 +71,9 @@
 - 기존 `unittest` 테스트 131개와 서브테스트 33개가 **수정 없이** 통과했습니다. 도입 비용은 사실상 0입니다.
 - 실패 출력은 33줄 대 20줄로 pytest가 더 길지만 `Differing items` 등 구조 비교와 `-vv` 확장이 있습니다. `unittest`의 `assertEqual`도 차이 표시를 제공합니다. 병렬 실행(`pytest-xdist`)은 설치하지 않아 검증하지 않았습니다.
 
-### typer: 같은 CLI를 재현
+### typer: 같은 CLI를 재현 (초기 측정, 아래 재평가로 정정됨)
 
-- 상호 배타 옵션(`--ids`와 `--from-specs`): argparse는 둘 다 주거나 둘 다 없으면 종료 코드 2로 거부했습니다. typer는 **둘 다 주어도, 둘 다 없어도 통과(종료 코드 0)** 했습니다. 직접 검증 코드를 써야 합니다.
-- `--ids a b c`(공백 구분 다중 값): argparse는 통과했고 typer는 거부했습니다. `--ids a --ids b`로 바꿔야 해 기존 사용법이 깨집니다.
-- 잘못된 정수는 둘 다 종료 코드 2로 거부했습니다.
+초기 측정은 상호 배타 검사를 구현하지 않은 채 비교해서, "둘 다 주어도 통과"를 typer의 결함처럼 적었다. 이는 공정하지 않았다. 아래 재평가를 보라.
 
 ## 종합 (속도 + 기능)
 
@@ -87,7 +85,7 @@
 | httpx | 없음 | 비동기, 재시도 훅, HTTP/2 | 오류·리다이렉트 처리 재작성, 재시도 직접 구현 | 현재 규모에서는 이득 없음 |
 | pydantic | 없음 | 모델로 타입·검증 | 조건부 규칙이 스키마에서 사라짐, lax 변환 | 계약의 원본으로는 부적합 |
 | pytest | 느림 | 풍부한 출력, 확장 | 도입 비용 0 | 팀 선호 문제. 선택 사항 |
-| typer | 느림 | 선언적 CLI | 상호 배타 옵션·다중 값 호환성 상실 | 비추천 |
+| typer | 느림 | 선언적 CLI | 아래 재평가 참고 | 재평가: 보류 |
 
 ## 채택 결정과 적용 (2026-11-02)
 
@@ -114,8 +112,38 @@
 - **속도:** 24건 기준 pydantic 187µs, 기존 표준 라이브러리 검증기 357µs, `fastjsonschema` 224µs, `jsonschema` 1206µs. 가장 빠르다. import 는 약 235ms(중앙값)로 `orjson`(약 78ms)보다 무겁다.
 - **오류 메시지:** 영어 문구에 필드 경로(`$.evidence[0].path_or_url`)를 붙여 반환한다. 이전 한국어 메시지는 사라졌다.
 - **`validate()` 의 스키마 파일 읽기:** 모델이 검증하므로 스키마 파일을 읽지 않는다(이전 5ms 문제가 구조적으로 사라짐). 테스트가 이를 고정한다.
-- **API 변경:** `validate(instance, schema=None)`의 `schema` 인자가 없어졌다. 임의 스키마를 넣어 검증하던 호출은 없었고, 이전 구현은 `bench/stdlib_validator.py`로 보존해 벤치 기준선으로만 쓴다.
+- **API 변경:** `validate(instance, schema=None)`의 `schema` 인자가 없어졌다. 임의 스키마를 넣어 검증하던 호출은 없었고, 이전 구현은 보존하지 않고 삭제했다(git 이력: `main`의 `37cb18b`). 위 속도 표의 자체 검증기 수치는 그 구현의 측정 기록이다.
 
 ### 실제 API 종단 확인
 
 `inspect_endpoints.py`가 13건 모두 성공했고, `build_capabilities.py`로 재생성한 `model-capabilities.json`은 저장된 파일과 모델 13개 전부 값이 같았다. `export_model_map.py --check`는 `model-map-proposal.json` 23경로가 바이트 단위로 일치했다.
+
+## typer 재평가 (공식 문서 기준)
+
+근거 문서: typer.tiangolo.com 의 `tutorial/multiple-values/multiple-options`, `arguments-with-multiple-values`, `options-with-multiple-values`, 그리고 상호 배타 옵션에 대한 `fastapi/typer#140`. 설치된 typer 0.27.3 의 소스(click 은 `typer/_click`에 내장)에서 mutually/exclusive 관련 기능을 검색해 없음을 확인했고, `typer.Option`에 `nargs` 매개변수가 없음도 확인했다.
+
+### 문서가 말하는 것
+
+- 여러 값: `list[str]` 옵션은 **반복 옵션**(`--user a --user b`)으로 받는다. 옵션 하나 뒤에 공백으로 이은 가변 개수 값(`--ids a b c`)은 문서에 없다. 가변 개수는 **마지막 위치 인자**의 `list`로만 받고, 옵션이 받는 여러 값은 개수가 고정된 `tuple`이다.
+- 상호 배타: 공식 기능이 아니다. 이슈 #140 의 답은 Enum 으로 대체하거나 콜백/본문에서 직접 검사하라는 것이다. "하나는 필수"도 본문에서 검사한다.
+
+### 문서 방식으로 같은 CLI 를 구현해 다시 측정 (`bench/eval_criteria.py`)
+
+| 입력 | argparse (현재) | typer 방식 1: 반복 옵션 + 본문 검사 | typer 방식 2: 위치 인자 |
+|---|---|---|---|
+| `--ids a b c` (현재 문서의 사용법) | 통과 | **거부**(unexpected extra argument) | `--ids` 옵션 자체가 없음 |
+| `--ids a --ids b` | 통과하지만 **`b`만 남고 `a`는 조용히 버려짐** | 통과, `a`와 `b` 모두 수집 | 해당 없음 |
+| 위치 인자 `a b c` | 거부 | 거부 | 통과 |
+| `--ids`와 `--from-specs` 둘 다 | 거부(코드 2) | 거부(코드 2, 직접 구현한 검사) | 해당 없음 |
+| 둘 다 없음 | 거부(코드 2) | 거부(코드 2, 직접 구현한 검사) | 거부(코드 2) |
+| `--out` 없음, `--timeout abc`, 알 수 없는 옵션 | 거부 | 거부(메시지는 rich 상자) | 해당 없음 |
+
+- 상호 배타 검사는 약 5줄을 직접 쓰면 argparse 와 같은 판정(종료 코드 2)이 된다. 정의 길이는 argparse 8줄 대 typer 12줄이다.
+- 정정: argparse 의 `--ids a --ids b` 는 마지막 값만 남기는 동작이 있어, 반복 옵션 방식이 오히려 값을 잃지 않는다.
+- 호환성: 현재 `inspect_endpoints.py`의 문서화된 사용법(`--ids openai/gpt-6-luna nvidia/...`)은 깨진다. 호출을 `--ids a --ids b`로 바꿔야 한다.
+- 비용: `import typer`는 측정마다 중앙값 약 375~557ms(기본 기동 약 32~35ms)로 변동이 크고 `rich`, `shellingham`, `annotated-doc`(Windows는 `colorama` 포함)와 `rich`의 하위 의존성이 추가된다. 저장소의 CLI 스크립트는 7개이고 `add_argument`는 23곳이다.
+- 얻는 것: rich 로 꾸민 도움말과 오류, 셸 자동완성(`add_completion` 기본 켜짐), 반복 옵션의 값 보존. 이 저장소의 스크립트는 단발 실행이라 대부분 체감 이득이 작다.
+
+### 재평가 결론
+
+초기의 "비추천" 근거 중 상호 배타 문제는 구현 누락에서 나온 과장이었고 직접 검사를 쓰면 동등해진다. 남는 실제 차이는 (1) 기존 사용법 `--ids a b c` 호환성 상실, (2) 기동 시간과 의존성 증가, (3) 반복 옵션 값 보존과 자동완성 같은 부가 이득이다. 판정은 **보류**: 사용법 변경과 기동 비용을 감수할 만한 부가 이득(자동완성, 도움말)이 필요할 때만 도입한다.

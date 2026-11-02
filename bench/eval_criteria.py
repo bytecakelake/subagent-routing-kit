@@ -20,8 +20,8 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 OUT = {}
 
-import stdlib_validator as legacy  # noqa: E402  (bench/ 안의 main 검증기 사본)
 from core.contract import load_schema  # noqa: E402
+from core.contract import validate as pydantic_validate  # noqa: E402
 
 
 # ---------- A. orjson: 바이트 호환성과 의미 차이 ----------
@@ -94,7 +94,7 @@ def eval_schema_libs():
     }
     msgs = {}
     for k, doc in bad.items():
-        row = {"own": legacy.validate(doc)}
+        row = {"pydantic(core.contract)": pydantic_validate(doc)}
         v = Draft202012Validator(schema)
         errs = sorted(v.iter_errors(doc), key=lambda e: list(e.path))
         row["jsonschema_all"] = [e.message[:140] for e in errs]
@@ -105,7 +105,7 @@ def eval_schema_libs():
         except fastjsonschema.JsonSchemaException as e:
             row["fastjsonschema"] = e.message[:140]
         msgs[k] = row
-    # 문법 범위: 자체 검증기가 예외를 던지는 키워드를 라이브러리는 처리하는지
+    # 문법 범위: 라이브러리가 JSON Schema 키워드를 올바르게 처리하는지
     probes = {
         "pattern": ({"type": "string", "pattern": "^[a-z]+$"}, "abc", "ABC"),
         "format_date": ({"type": "string", "format": "date"}, "2026-10-30", "x"),
@@ -118,11 +118,6 @@ def eval_schema_libs():
     cover = {}
     for k, (s, good, badv) in probes.items():
         row = {}
-        try:
-            legacy.validate(good, s)
-            row["own"] = "supported"
-        except ValueError:
-            row["own"] = "raises ValueError (unsupported keyword)"
         v = Draft202012Validator(s, format_checker=jsonschema.FormatChecker())
         row["jsonschema(good,bad)"] = (v.is_valid(good), v.is_valid(badv))
         try:
@@ -281,10 +276,7 @@ def eval_pydantic():
             return False
 
     res["lax_vs_strict"] = {"result=5 (strict rejects)": lax_ok({"result": 5}), "n='5'": lax_ok({"result": "x", "n": "5"}), "n=True": lax_ok({"result": "x", "n": True})}
-    try:
-        contract.Report.model_validate({"status": "done"})
-    except ValidationError as e:
-        res["sample_error_style"] = contract.validate({"status": "done"})
+    res["sample_error_style"] = contract.validate({"status": "done"})
     OUT["pydantic"] = res
 
 
@@ -315,9 +307,14 @@ def eval_pytest():
     OUT["pytest"] = res
 
 
-# ---------- F. typer vs argparse: 같은 CLI 를 재현 ----------
+# ---------- F. typer vs argparse: 공식 문서가 안내하는 방식으로 같은 CLI 를 재현 ----------
 def eval_typer():
+    """문서 근거(typer.tiangolo.com tutorial/multiple-values/*): 여러 값은 반복 옵션(list)이나 마지막 위치 인자(list)로 받고,
+    옵션 하나가 공백으로 이어진 가변 개수 값을 받는 기능(nargs=+)은 없다(typer.Option 에 nargs 매개변수 없음).
+    상호 배타 옵션은 공식 기능이 아니며 커뮤니티 해법(fastapi/typer#140)은 콜백이나 본문 검사다.
+    """
     import argparse
+    import inspect
     import typing
 
     import typer
@@ -330,28 +327,60 @@ def eval_typer():
         g.add_argument("--from-specs")
         ap.add_argument("--out", required=True)
         ap.add_argument("--timeout", type=int, default=40)
-        a = ap.parse_args(argv)
-        return a
+        return ap.parse_args(argv)
 
-    app = typer.Typer(add_completion=False)
+    def check_source(ids, from_specs):
+        if bool(ids) == bool(from_specs):  # 둘 다 있거나 둘 다 없음
+            raise typer.BadParameter("--ids 와 --from-specs 중 정확히 하나가 필요합니다")
 
-    @app.command()
-    def run(
+    # 방식 1: 반복 옵션(--ids a --ids b) + 본문 검사
+    app1 = typer.Typer(add_completion=False)
+
+    @app1.command()
+    def repeated_option(
         out: typing.Annotated[str, typer.Option()],
         ids: typing.Annotated[typing.Optional[list[str]], typer.Option()] = None,
         from_specs: typing.Annotated[typing.Optional[str], typer.Option()] = None,
         timeout: typing.Annotated[int, typer.Option()] = 40,
     ):
-        print(f"ids={ids} from_specs={from_specs} out={out} timeout={timeout}")
+        check_source(ids, from_specs)
+        print(f"ids={ids} from_specs={from_specs}")
+
+    # 방식 2: 마지막 위치 인자 list (ids 를 --ids 옵션이 아니라 위치 인자로) + 본문 검사
+    app2 = typer.Typer(add_completion=False)
+
+    @app2.command()
+    def positional(
+        ids: typing.Annotated[typing.Optional[list[str]], typer.Argument()] = None,
+        out: typing.Annotated[str, typer.Option()] = "",
+        from_specs: typing.Annotated[typing.Optional[str], typer.Option()] = None,
+        timeout: typing.Annotated[int, typer.Option()] = 40,
+    ):
+        if not out:
+            raise typer.BadParameter("--out 이 필요합니다")
+        check_source(ids, from_specs)
+        print(f"ids={ids} from_specs={from_specs}")
 
     runner = CliRunner()
-    res = {}
+
+    def run_typer(app, argv):
+        r = runner.invoke(app, argv)
+        lines = [l.strip(" │╭╰╮╯─") for l in (r.output or "").splitlines()]
+        msg = next((l for l in lines if l and not l.startswith(("Usage", "Try", "Error"))), "")
+        return f"exit {r.exit_code}" + (f": {msg[:70]}" if r.exit_code else f": {(r.output or '').strip()[:60]}")
+
     cases = {
-        "both exclusive options": ["--ids", "a", "--from-specs", "x", "--out", "o"],
-        "neither": ["--out", "o"],
-        "bad int": ["--ids", "a", "--out", "o", "--timeout", "abc"],
-        "multi values after --ids": ["--ids", "a", "b", "c", "--out", "o"],
+        "A. --ids a b c (공백 구분, 현재 사용법)": ["--ids", "a", "b", "c", "--out", "o"],
+        "B. --ids a --ids b (반복 옵션)": ["--ids", "a", "--ids", "b", "--out", "o"],
+        "C. 위치 인자 a b c": ["a", "b", "c", "--out", "o"],
+        "D. --from-specs 만": ["--from-specs", "x", "--out", "o"],
+        "E. --ids 와 --from-specs 둘 다": ["--ids", "a", "--from-specs", "x", "--out", "o"],
+        "F. 둘 다 없음": ["--out", "o"],
+        "G. --out 없음": ["--ids", "a"],
+        "H. --timeout abc": ["--ids", "a", "--out", "o", "--timeout", "abc"],
+        "I. 알 수 없는 옵션": ["--ids", "a", "--out", "o", "--nope"],
     }
+    res = {}
     for label, argv in cases.items():
         row = {}
         try:
@@ -359,10 +388,14 @@ def eval_typer():
             row["argparse"] = f"ok ids={a.ids}"
         except SystemExit as e:
             row["argparse"] = f"exit {e.code}"
-        r = runner.invoke(app, argv)
-        row["typer"] = f"exit {r.exit_code}: {(r.output or '').strip().splitlines()[-1][:80] if (r.output or '').strip() else ''}"
+        row["typer 방식1(반복 옵션)"] = run_typer(app1, argv)
+        row["typer 방식2(위치 인자)"] = run_typer(app2, argv)
         res[label] = row
-    res["note"] = "typer(click) 에는 argparse 의 mutually_exclusive_group 에 해당하는 내장 기능이 없고, 'nargs=+' 도 반복 옵션(--ids a --ids b)으로 바뀐다"
+    res["_정의 길이(줄)"] = {
+        "argparse(arg_cli)": len(inspect.getsource(arg_cli).splitlines()),
+        "typer 방식1": len(inspect.getsource(repeated_option).splitlines()) + len(inspect.getsource(check_source).splitlines()),
+    }
+    res["_help"] = {"typer 방식1 --help 줄 수": len(runner.invoke(app1, ["--help"]).output.splitlines())}
     OUT["typer"] = res
 
 

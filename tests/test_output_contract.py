@@ -6,7 +6,7 @@ import unittest
 from unittest import mock
 
 from core import contract
-from core.contract import END_VALUES, SCHEMA_PATH, Evidence, Report, load_schema, parse_and_validate, validate
+from core.contract import END_VALUES, SCHEMA_PATH, Evidence, Report, load_schema, validate
 
 try:
     from jsonschema import Draft202012Validator
@@ -176,17 +176,6 @@ class Validation(unittest.TestCase):
         with mock.patch.object(contract, "load_schema", side_effect=AssertionError("schema read")):
             for _ in range(3):
                 self.assertEqual(validate(good()), [])
-
-    def test_parse_and_validate(self):
-        value, errs = parse_and_validate(json.dumps(good()))
-        self.assertEqual(errs, [])
-        self.assertEqual(value["status"], "completed")
-        value, errs = parse_and_validate("not json")
-        self.assertIsNone(value)
-        self.assertEqual(len(errs), 1)
-        value, errs = parse_and_validate(json.dumps(good(status="done")))
-        self.assertEqual(value["status"], "done")
-        self.assertTrue(errs)
 
 
 if __name__ == "__main__":
