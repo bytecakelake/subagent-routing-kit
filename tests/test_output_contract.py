@@ -105,6 +105,20 @@ class Validation(unittest.TestCase):
             validate({"a": 1}, {"type": "object", "pattern": "x"})
 
 
+class DefaultSchemaCache(unittest.TestCase):
+    def test_default_schema_is_read_once(self):
+        from unittest import mock
+
+        from core import contract
+
+        contract._default_schema.cache_clear()
+        with mock.patch.object(contract, "load_schema", wraps=contract.load_schema) as m:
+            for _ in range(5):
+                self.assertEqual(validate(good()), [])
+        self.assertEqual(m.call_count, 1)
+        contract._default_schema.cache_clear()
+
+
 class SchemaLocation(unittest.TestCase):
     def test_default_path(self):
         self.assertTrue(SCHEMA_PATH.is_file())
