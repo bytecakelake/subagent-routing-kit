@@ -1,0 +1,351 @@
+{
+  "orjson": {
+    "byte_identical_files": {
+      "model-capabilities.json": {
+        "file_matches_stdlib_dump": true,
+        "orjson_matches_stdlib_dump": true,
+        "file_matches_orjson_dump": true
+      },
+      "output-contract.schema.json": {
+        "file_matches_stdlib_dump": false,
+        "orjson_matches_stdlib_dump": true,
+        "file_matches_orjson_dump": false
+      },
+      "recommended-costs.json": {
+        "file_matches_stdlib_dump": false,
+        "orjson_matches_stdlib_dump": true,
+        "file_matches_orjson_dump": false
+      },
+      "tier-taxonomy.json": {
+        "file_matches_stdlib_dump": true,
+        "orjson_matches_stdlib_dump": true,
+        "file_matches_orjson_dump": true
+      },
+      "variant-specs.json": {
+        "file_matches_stdlib_dump": true,
+        "orjson_matches_stdlib_dump": true,
+        "file_matches_orjson_dump": true
+      },
+      "model-map-proposal.json": {
+        "file_matches_stdlib_dump": true,
+        "orjson_matches_stdlib_dump": true,
+        "file_matches_orjson_dump": true
+      }
+    },
+    "edge_cases": {
+      "korean_text": {
+        "json": "{\"a\":\"한글\"}",
+        "orjson": "{\"a\":\"한글\"}",
+        "same": true
+      },
+      "float_0.1+0.2": {
+        "json": "0.30000000000000004",
+        "orjson": "0.30000000000000004",
+        "same": true
+      },
+      "float_1e22": {
+        "json": "1e+22",
+        "orjson": "1e+22",
+        "same": true
+      },
+      "float_1e16": {
+        "json": "1e+16",
+        "orjson": "1e+16",
+        "same": true
+      },
+      "int_2**70": {
+        "json": "1180591620717411303424",
+        "orjson": "ERR TypeError: Integer exceeds 64-bit range",
+        "same": false
+      },
+      "nan": {
+        "json": "NaN",
+        "orjson": "null",
+        "same": false
+      },
+      "neg_zero": {
+        "json": "-0.0",
+        "orjson": "-0.0",
+        "same": true
+      },
+      "int_key": {
+        "json": "{\"1\":\"a\"}",
+        "orjson": "ERR TypeError: Dict key must be str",
+        "same": false
+      },
+      "tuple": {
+        "json": "[1,2]",
+        "orjson": "[1,2]",
+        "same": true
+      },
+      "frozenset": {
+        "json": "ERR TypeError: Object of type frozenset is not JSON serializable",
+        "orjson": "ERR TypeError: Type is not JSON serializable: frozenset",
+        "same": false
+      },
+      "lone_surrogate": {
+        "json": "\"\\ud800\"",
+        "orjson": "ERR TypeError: str is not valid UTF-8: surrogates not allowed",
+        "same": false
+      },
+      "loads:dup_keys": {
+        "json": "{'a': 2}",
+        "orjson": "{'a': 2}",
+        "same": true
+      },
+      "loads:nan_literal": {
+        "json": "[nan]",
+        "orjson": "ERR JSONDecodeError",
+        "same": false
+      },
+      "loads:big_int": {
+        "json": "123456789012345678901234567890",
+        "orjson": "1.2345678901234568e+29",
+        "same": false
+      }
+    },
+    "dumps_return_type": "bytes"
+  },
+  "schema_libs": {
+    "error_messages": {
+      "wrong_status": {
+        "own": [
+          "$.status: ['completed', 'partial', 'blocked'] 중 하나여야 합니다 (받은 값: 'done')"
+        ],
+        "jsonschema_all": [
+          "'done' is not one of ['completed', 'partial', 'blocked']"
+        ],
+        "jsonschema_best_match": "'done' is not one of ['completed', 'partial', 'blocked']",
+        "fastjsonschema": "data.status must be one of ['completed', 'partial', 'blocked']"
+      },
+      "completed_without_evidence": {
+        "own": [
+          "$.evidence: 항목이 1개 이상이어야 합니다"
+        ],
+        "jsonschema_all": [
+          "[] should be non-empty"
+        ],
+        "jsonschema_best_match": "[] should be non-empty",
+        "fastjsonschema": "data.evidence must contain at least 1 items"
+      },
+      "blocked_without_unresolved": {
+        "own": [
+          "$.unresolved: 항목이 1개 이상이어야 합니다"
+        ],
+        "jsonschema_all": [
+          "[] should be non-empty"
+        ],
+        "jsonschema_best_match": "[] should be non-empty",
+        "fastjsonschema": "data.unresolved must contain at least 1 items"
+      },
+      "extra_field": {
+        "own": [
+          "$: 허용되지 않은 필드 'x'"
+        ],
+        "jsonschema_all": [
+          "Additional properties are not allowed ('x' was unexpected)"
+        ],
+        "jsonschema_best_match": "Additional properties are not allowed ('x' was unexpected)",
+        "fastjsonschema": "data must not contain {'x'} properties"
+      },
+      "missing_field": {
+        "own": [
+          "$: 필수 필드 'evidence' 가 없습니다"
+        ],
+        "jsonschema_all": [
+          "'evidence' is a required property"
+        ],
+        "jsonschema_best_match": "'evidence' is a required property",
+        "fastjsonschema": "data must contain ['evidence'] properties"
+      },
+      "nested_type": {
+        "own": [
+          "$.evidence[0].path_or_url: string 이어야 합니다"
+        ],
+        "jsonschema_all": [
+          "3 is not of type 'string'"
+        ],
+        "jsonschema_best_match": "3 is not of type 'string'",
+        "fastjsonschema": "data.evidence[0].path_or_url must be string"
+      }
+    },
+    "keyword_coverage": {
+      "pattern": {
+        "own": "raises ValueError (unsupported keyword)",
+        "jsonschema(good,bad)": [
+          true,
+          false
+        ],
+        "fastjsonschema(good,bad)": "good ok, bad rejected"
+      },
+      "format_date": {
+        "own": "raises ValueError (unsupported keyword)",
+        "jsonschema(good,bad)": [
+          true,
+          false
+        ],
+        "fastjsonschema(good,bad)": "good ok, bad rejected"
+      },
+      "$ref": {
+        "own": "raises ValueError (unsupported keyword)",
+        "jsonschema(good,bad)": [
+          true,
+          false
+        ],
+        "fastjsonschema(good,bad)": "good ok, bad rejected"
+      },
+      "oneOf": {
+        "own": "raises ValueError (unsupported keyword)",
+        "jsonschema(good,bad)": [
+          true,
+          false
+        ],
+        "fastjsonschema(good,bad)": "good ok, bad rejected"
+      },
+      "uniqueItems": {
+        "own": "raises ValueError (unsupported keyword)",
+        "jsonschema(good,bad)": [
+          true,
+          false
+        ],
+        "fastjsonschema(good,bad)": "good ok, bad rejected"
+      },
+      "maximum": {
+        "own": "raises ValueError (unsupported keyword)",
+        "jsonschema(good,bad)": [
+          true,
+          false
+        ],
+        "fastjsonschema(good,bad)": "good ok, bad rejected"
+      },
+      "dependentRequired": {
+        "own": "raises ValueError (unsupported keyword)",
+        "jsonschema(good,bad)": [
+          true,
+          false
+        ],
+        "fastjsonschema(good,bad)": "good ok, bad ALSO PASSED"
+      }
+    }
+  },
+  "http": {
+    "/ok": {
+      "urllib": "status=200 body=b'{\"ok\":true}'",
+      "httpx(default)": "status=200 body=b'{\"ok\":true}'"
+    },
+    "/404": {
+      "urllib": "raises HTTPError 404",
+      "httpx(default)": "status=404 body=b'{\"error\":\"nf\"}'"
+    },
+    "/redirect": {
+      "urllib": "status=200 body=b'{\"ok\":true}'",
+      "httpx(default)": "status=302 body=b''",
+      "httpx(follow_redirects=True)": "status=200 body=b'{\"ok\":true}'"
+    },
+    "/429": {
+      "urllib": "raises HTTPError 429",
+      "httpx(default)": "status=429 body=b''"
+    },
+    "/slow timeout=1": {
+      "urllib": "raises TimeoutError",
+      "httpx": "raises ReadTimeout"
+    },
+    "/flaky (500,500,200) httpx retries=3": "status=500, server hits=1",
+    "/flaky raise_for_status": "HTTPStatusError 500",
+    "20 sequential local requests (ms)": {
+      "urllib": 22.0,
+      "httpx(client reuse)": 28.3
+    },
+    "http2_extra": "h2 not installed"
+  },
+  "pydantic": {
+    "generated_schema_top_keys": [
+      "$defs",
+      "additionalProperties",
+      "properties",
+      "required",
+      "title",
+      "type"
+    ],
+    "generated_has_if_then_rules": false,
+    "generated_required": [
+      "status",
+      "result",
+      "evidence",
+      "unresolved"
+    ],
+    "our_required": [
+      "status",
+      "result",
+      "evidence",
+      "unresolved"
+    ],
+    "generated_additionalProperties": false,
+    "agreement_with_schema_on_corpus": true,
+    "disagreements": [],
+    "conditional_rule_in_generated_schema(completed+empty evidence valid?)": true,
+    "conditional_rule_in_model(completed+empty evidence valid?)": false,
+    "lax_mode_coercion": {
+      "'5' -> int": 5,
+      "True -> int": 1
+    },
+    "sample_error": [
+      "4 validation errors for Report",
+      "status",
+      "  Input should be 'completed', 'partial' or 'blocked' [type=literal_error, input_value='done', input_type=str]",
+      "    For further information visit https://errors.pydantic.dev/2.14/v/literal_error",
+      "result",
+      "  Field required [type=missing, input_value={'status': 'done'}, input_type=dict]"
+    ]
+  },
+  "pytest": {
+    "existing_unittest_suite_unmodified": "131 passed, 33 subtests passed in 2.30s",
+    "failure_output_lines": {
+      "unittest": 20,
+      "pytest": 33
+    },
+    "unittest_failure_excerpt": [
+      "----------------------------------------------------------------------",
+      "Traceback (most recent call last):",
+      "  File \"/tmp/tmp_hsp548c/test_fail.py\", line 4, in test_dict",
+      "    self.assertEqual({'status': 'blocked', 'unresolved': ['a'], 'x': 1}, {'status': 'blocked', 'unresolved': ['b'], 'x': 1})",
+      "    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+      "AssertionError: {'status': 'blocked', 'unresolved': ['a'], 'x': 1} != {'status': 'blocked', 'unresolved': ['b'], 'x': 1}",
+      "- {'status': 'blocked', 'unresolved': ['a'], 'x': 1}",
+      "?                                       ^",
+      ""
+    ],
+    "pytest_failure_excerpt": [
+      "E       AssertionError: {'status': 'blocked', 'unresolved': ['a'], 'x': 1} != {'status': 'blocked', 'unresolved': ['b'], 'x': 1}",
+      "E       - {'status': 'blocked', 'unresolved': ['a'], 'x': 1}",
+      "E       ?                                       ^",
+      "E       ",
+      "E       + {'status': 'blocked', 'unresolved': ['b'], 'x': 1}",
+      "E       ?                                       ^",
+      "E       AssertionError: assert {'status': 'b...['a'], 'x': 1} == {'status': 'b...['b'], 'x': 1}",
+      "E         ",
+      "E         Omitting 2 identical items, use -vv to show",
+      "E         Differing items:"
+    ],
+    "xdist_installed": false
+  },
+  "typer": {
+    "both exclusive options": {
+      "argparse": "exit 2",
+      "typer": "exit 0: ids=['a'] from_specs=x out=o timeout=40"
+    },
+    "neither": {
+      "argparse": "exit 2",
+      "typer": "exit 0: ids=None from_specs=None out=o timeout=40"
+    },
+    "bad int": {
+      "argparse": "exit 2",
+      "typer": "exit 2: ╰──────────────────────────────────────────────────────────────────────────────╯"
+    },
+    "multi values after --ids": {
+      "argparse": "ok ids=['a', 'b', 'c']",
+      "typer": "exit 2: ╰──────────────────────────────────────────────────────────────────────────────╯"
+    },
+    "note": "typer(click) 에는 argparse 의 mutually_exclusive_group 에 해당하는 내장 기능이 없고, 'nargs=+' 도 반복 옵션(--ids a --ids b)으로 바뀐다"
+  }
+}
