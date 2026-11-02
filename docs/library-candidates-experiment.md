@@ -99,7 +99,7 @@
 |---|---|---|
 | `core/catalog`, `core/contract`, `adapters/hermes/export_model_map.py` | orjson (`core/jsonio.py` 경유), httpx, pydantic | 개발자 도구와 부모 쪽 검증. 외부 패키지 설치가 가능한 곳 |
 | `core/eligibility/rules.py` 와 플러그인 사본 | **표준 라이브러리 유지** | `sync_plugin.py`가 Hermes 안으로 복사해 실행하므로 Hermes 환경에 패키지가 있다고 가정할 수 없다. 의존성 없는 `python3`에서 판정기·플러그인 테스트 65개가 통과함을 확인 |
-| `adapters/hermes/apply_model_map.py` | 표준 `json` 유지 | 공백이 있는 `json.dumps` 출력을 YAML 줄에 그대로 넣는다. orjson 은 공백 없는 출력이라 결과가 달라진다 |
+| `adapters/hermes/apply_model_map.py` | orjson (`core/jsonio.py` 경유) | 처음에는 공백 없는 출력이 YAML 에 문제를 줄까 봐 제외했으나, 공백 없는 JSON 도 유효한 YAML 흐름 표기이며 PyYAML 로 읽으면 이전 출력과 같은 데이터임을 확인해 적용했다(현재 23경로에서는 텍스트까지 동일). orjson 에는 `, `/`: ` 공백을 넣는 옵션이 없고 `OPT_INDENT_2`(여러 줄)뿐이다 |
 
 ### 위험 대응
 

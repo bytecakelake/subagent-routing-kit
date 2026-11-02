@@ -9,10 +9,9 @@
 
 `hermes` 실행 파일은 PATH, %LOCALAPPDATA%\\hermes\\bin\\hermes.exe, 또는 --hermes 순으로 찾는다.
 설정 파일은 --config, HERMES_HOME, %LOCALAPPDATA%\\hermes, ~/.hermes 순으로 찾는다.
-표준 라이브러리만 사용하며 추론 호출은 하지 않는다. 실제 설정 변경은 --apply 에서만 일어난다.
+JSON 쓰기에 orjson 을 쓰며 추론 호출은 하지 않는다. 실제 설정 변경은 --apply 에서만 일어난다.
 """
 import argparse
-import json
 import os
 import pathlib
 import re
@@ -25,6 +24,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from adapters.hermes.export_model_map import problems  # noqa: E402
+from core import jsonio  # noqa: E402
 
 PROPOSAL = ROOT / "adapters" / "hermes" / "model-map-proposal.json"
 #: 설치된 advanced-delegation 플러그인의 검증 규칙(store.py::validate_route)과 model_map.py 가 읽는 키.
@@ -36,7 +36,7 @@ KEYS = frozenset({"name", "description", "provider", "model", "base_url", "api_k
 
 
 def load(path=PROPOSAL):
-    return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+    return jsonio.load_path(path)
 
 
 def plugin_problems(options, default):
@@ -79,14 +79,14 @@ def yaml_block(options, default):
     lines = ["delegation:", "  backend: model_map", "  backends:", "    model_map:", "      options:"]
     for o in options:
         lines.append(f"        - name: {o['name']}")
-        lines.append(f"          description: {json.dumps(o['description'], ensure_ascii=False)}")
+        lines.append(f"          description: {jsonio.dumps(o['description'])}")
         for key in ("provider", "base_url", "model", "api_key", "api_mode",
                     "reasoning_effort", "service_tier"):
             if o.get(key):
-                lines.append(f"          {key}: {json.dumps(o[key], ensure_ascii=False)}")
+                lines.append(f"          {key}: {jsonio.dumps(o[key])}")
         if "fallback_providers" in o:
             lines.append("          fallback_providers: []" if not o["fallback_providers"]
-                         else f"          fallback_providers: {json.dumps(o['fallback_providers'], ensure_ascii=False)}")
+                         else f"          fallback_providers: {jsonio.dumps(o['fallback_providers'])}")
     lines.append(f"      default: {default}")
     return "\n".join(lines) + "\n"
 
@@ -198,7 +198,7 @@ def main(argv=None):
     shutil.copy2(cfg, backup)
     print(f"백업: {backup}")
 
-    payload = json.dumps({"options": options, "default": default}, ensure_ascii=False)
+    payload = jsonio.dumps({"options": options, "default": default})
     for step in (["config", "set", "delegation.backends.model_map", payload],
                  ["config", "set", "delegation.backend", "model_map"]):
         code, out = run(exe, a.profile, step)
