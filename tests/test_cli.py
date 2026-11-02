@@ -248,5 +248,79 @@ class ApplyModelMapCli(unittest.TestCase):
         self.assertEqual(r.exit_code, 2)
 
 
+class ApplyModelMapApplyPath(TempDirCase):
+    """--apply 이하의 경로를 hermes 호출을 가짜로 대체해 검증한다(실제 설정과 실행 파일은 건드리지 않는다)."""
+
+    def setUp(self):
+        super().setUp()
+        self.cfg = self.write("config.yaml", "existing: true\n")
+        self.calls = []
+
+    def fake_run(self, *, fail_set=False, readback=True, fail_restart=False):
+        def run_(exe, profile, args, timeout=180):
+            self.calls.append((profile, tuple(args[:2])))
+            if args[:2] == ["config", "set"]:
+                return (3, "boom") if fail_set else (0, "")
+            if args[:2] == ["config", "get"]:
+                text = "model_map " + " ".join(o["name"] for o in apply_model_map.load(apply_model_map.PROPOSAL)["options"])
+                return 0, (text + " M-Haiku-Balanced") if readback else ""
+            if args[:2] == ["gateway", "restart"]:
+                return (4, "restart failed") if fail_restart else (0, "restarted")
+            return 0, "running"
+        return run_
+
+    def apply(self, *flags, **fake):
+        patches = [mock.patch.object(apply_model_map, "hermes_exe", return_value="hermes"),
+                   mock.patch.object(apply_model_map, "run", self.fake_run(**fake)),
+                   mock.patch.object(apply_model_map.time, "sleep")]
+        for p in patches:
+            p.start()
+            self.addCleanup(p.stop)
+        return run(apply_model_map.app, "--apply", "--config", str(self.cfg), *flags, input="")
+
+    def backups(self):
+        return [p for p in self.tmp.iterdir() if "before-model-map" in p.name]
+
+    def test_success_backs_up_sets_twice_and_verifies(self):
+        r = self.apply(readback=True)
+        self.assertEqual(r.exit_code, 0, r.output)
+        self.assertEqual(len(self.backups()), 1)
+        self.assertEqual(self.backups()[0].read_text(encoding="utf-8"), "existing: true\n")
+        self.assertEqual([c[1] for c in self.calls].count(("config", "set")), 2)
+        self.assertIn("read-back 확인", r.output)
+
+    def test_set_failure_stops_after_the_first_call_and_points_to_the_backup(self):
+        r = self.apply(fail_set=True)
+        self.assertEqual(r.exit_code, 1)
+        self.assertEqual([c[1] for c in self.calls].count(("config", "set")), 1)
+        self.assertIn("백업으로 되돌리십시오", r.output)
+
+    def test_readback_mismatch_exits_nonzero(self):
+        r = self.apply(readback=False)
+        self.assertEqual(r.exit_code, 1)
+        self.assertIn("read-back 불일치", r.output)
+
+    def test_restart_with_yes_runs_and_reports(self):
+        r = self.apply("--restart", "-y")
+        self.assertEqual(r.exit_code, 0, r.output)
+        self.assertIn(("", ("gateway", "restart")), self.calls)
+
+    def test_restart_failure_exits_nonzero(self):
+        r = self.apply("--restart", "-y", fail_restart=True)
+        self.assertEqual(r.exit_code, 1)
+        self.assertIn("재시작 확인에 실패", r.output)
+
+    def test_restart_without_confirmation_is_skipped(self):
+        r = self.apply("--restart")  # 입력이 비어 있으면(EOF) 재시작하지 않는다
+        self.assertEqual(r.exit_code, 0, r.output)
+        self.assertNotIn(("", ("gateway", "restart")), self.calls)
+        self.assertIn("재시작을 생략했습니다", r.output)
+
+    def test_profile_is_passed_to_every_hermes_call(self):
+        self.apply("-p", "biser")
+        self.assertTrue(self.calls)
+        self.assertEqual({c[0] for c in self.calls}, {"biser"})
+
+
 if __name__ == "__main__":
     unittest.main()
