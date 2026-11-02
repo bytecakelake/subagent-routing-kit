@@ -37,6 +37,60 @@
       "fallback_providers": []
     },
     {
+      "name": "F-DeepSeek-Standard",
+      "description": "Open-weight frontier alternative for long-document logic review, multi-file implementation and cross-checks when value per cost matters. Text input only. Avoid: Image input, short summaries, simple extraction. reasoning=high; speed=normal(balanced, unmeasured).",
+      "provider": "openrouter",
+      "model": "deepseek/deepseek-v4-pro-0813",
+      "reasoning_effort": "high",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "F-DeepSeek-Deep",
+      "description": "Open-weight route for hard root-cause analysis and costly-to-fail reviews when F-DeepSeek-Standard was not enough. Text input only. Avoid: Image input, repeated retries of the same task, time-sensitive simple work. reasoning=max; speed=normal(accuracy-first, unmeasured).",
+      "provider": "openrouter",
+      "model": "deepseek/deepseek-v4-pro-0813",
+      "reasoning_effort": "max",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "F-GLM-Standard",
+      "description": "Open-weight agentic coding and long-horizon tool-use tasks, multi-file implementation. Reasoning cannot be disabled. Avoid: Image input, short summaries, simple extraction, tasks that need reasoning off. reasoning=high; speed=normal(balanced, unmeasured).",
+      "provider": "openrouter",
+      "model": "z-ai/glm-5.3",
+      "reasoning_effort": "high",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "F-GLM-Deep",
+      "description": "Open-weight route for hard debugging and design-flaw analysis after F-GLM-Standard fell short. Reasoning cannot be disabled. Avoid: Image input, repeated retries of the same task, narrow mechanical changes. reasoning=max; speed=normal(accuracy-first, unmeasured).",
+      "provider": "openrouter",
+      "model": "z-ai/glm-5.3",
+      "reasoning_effort": "max",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "F-Qwen-Standard",
+      "description": "Open-weight 2.4T-parameter route for hard design, evidence cross-checking and code review. Reasoning cannot be disabled. Avoid: Image input, short summaries, simple extraction. reasoning=medium; speed=normal(balanced, unmeasured).",
+      "provider": "openrouter",
+      "model": "qwen/qwen3.8-2.4t-a95b",
+      "reasoning_effort": "medium",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
+      "name": "F-Qwen-Deep",
+      "description": "Open-weight route for conflicting constraints and high-risk independent reviews when F-Qwen-Standard was not enough. Reasoning cannot be disabled. Avoid: Image input, repeated retries of the same task, time-sensitive simple work. reasoning=xhigh; speed=normal(accuracy-first, unmeasured).",
+      "provider": "openrouter",
+      "model": "qwen/qwen3.8-2.4t-a95b",
+      "reasoning_effort": "xhigh",
+      "service_tier": "normal",
+      "fallback_providers": []
+    },
+    {
       "name": "M-Terra-Quick",
       "description": "Code exploration and general research with clear conditions, small implementations. Avoid: Unclear architecture, final security review. reasoning=low; speed=normal(low-latency, unmeasured).",
       "provider": "openrouter",

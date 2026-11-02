@@ -3,11 +3,17 @@
   "subtiers": {
     "F1": [
       "F-Sol-Standard",
-      "F-Sonnet-Code"
+      "F-Sonnet-Code",
+      "F-DeepSeek-Standard",
+      "F-GLM-Standard",
+      "F-Qwen-Standard"
     ],
     "F2": [
       "F-Sol-Deep",
-      "F-Sonnet-Debug"
+      "F-Sonnet-Debug",
+      "F-DeepSeek-Deep",
+      "F-GLM-Deep",
+      "F-Qwen-Deep"
     ],
     "F3": [],
     "M1": [

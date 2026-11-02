@@ -20,6 +20,17 @@ ROUTES = routes_from_specs(SPECS)
 NAMES = [r.name for r in ROUTES]
 
 
+OPEN_WEIGHT_FRONTIER = {
+    "F-DeepSeek-Standard": ("deepseek/deepseek-v4-pro-0813", "high"),
+    "F-DeepSeek-Deep": ("deepseek/deepseek-v4-pro-0813", "max"),
+    "F-GLM-Standard": ("z-ai/glm-5.3", "high"),
+    "F-GLM-Deep": ("z-ai/glm-5.3", "max"),
+    "F-Qwen-Standard": ("qwen/qwen3.8-2.4t-a95b", "medium"),
+    "F-Qwen-Deep": ("qwen/qwen3.8-2.4t-a95b", "xhigh"),
+}
+TEXT_ONLY_ROUTES = {"M-DeepSeekPro-Plain", "M-DeepSeekPro-Reason"} | set(OPEN_WEIGHT_FRONTIER)
+
+
 def decide(task, routes=ROUTES, registered=NAMES):
     return evaluate(task, routes, CAPS, registered=registered)
 
@@ -31,9 +42,9 @@ class SpecIntegrity(unittest.TestCase):
     def test_route_names_are_unique(self):
         self.assertEqual(len(NAMES), len(set(NAMES)))
 
-    def test_all_17_variants_pass_the_task_independent_rules(self):
+    def test_all_23_variants_pass_the_task_independent_rules(self):
         d = decide(Task("baseline"))
-        self.assertEqual(len(ROUTES), 17)
+        self.assertEqual(len(ROUTES), 23)
         self.assertEqual(d.rejected, {}, d.rejected)
         self.assertEqual(d.status, R.ELIGIBLE)
 
@@ -42,6 +53,31 @@ class SpecIntegrity(unittest.TestCase):
         self.assertEqual(doc["schema"], 1)
         self.assertRegex(doc["collected_at"], r"^\d{4}-\d{2}-\d{2}$")
         self.assertTrue(doc["source"])
+
+
+class OpenWeightFrontierRoutes(unittest.TestCase):
+    """고성능(F1/F2) 목록에 추가한 오픈웨이트 경로가 명세·분류표·판정기에서 일관된지 확인한다."""
+
+    def test_routes_use_the_intended_model_and_effort(self):
+        by_name = {r.name: r for r in ROUTES}
+        for name, (model, effort) in OPEN_WEIGHT_FRONTIER.items():
+            self.assertEqual((by_name[name].model, by_name[name].reasoning_effort), (model, effort), name)
+
+    def test_routes_are_listed_in_the_frontier_subtiers(self):
+        tax = json.loads((ROOT / "core" / "spec" / "tier-taxonomy.json").read_text(encoding="utf-8"))["subtiers"]
+        self.assertTrue({n for n in OPEN_WEIGHT_FRONTIER if n.endswith("Standard")} <= set(tax["F1"]))
+        self.assertTrue({n for n in OPEN_WEIGHT_FRONTIER if n.endswith("Deep")} <= set(tax["F2"]))
+
+    def test_routes_are_cheaper_per_output_token_than_the_closed_frontier_routes(self):
+        specs = {s["name"]: s for s in json.loads(SPECS.read_text(encoding="utf-8"))}
+        closed = specs["F-Sol-Standard"]["output_per_million"]
+        for name in OPEN_WEIGHT_FRONTIER:
+            self.assertLess(specs[name]["output_per_million"], closed, name)
+
+    def test_reasoning_mandatory_models_are_never_run_with_reasoning_off(self):
+        for name, (model, effort) in OPEN_WEIGHT_FRONTIER.items():
+            if CAPS[model].reasoning_mandatory:
+                self.assertNotEqual(effort, "none", name)
 
 
 class RegressionAgainstEarlierValidation(unittest.TestCase):
@@ -89,7 +125,7 @@ class TaskScenarios(unittest.TestCase):
 
     def test_image_task_excludes_text_only_models(self):
         d = decide(Task("img", needs_modalities=frozenset({"text", "image"})))
-        self.assertEqual(set(d.rejected), {"M-DeepSeekPro-Plain", "M-DeepSeekPro-Reason"})
+        self.assertEqual(set(d.rejected), TEXT_ONLY_ROUTES)
 
     def test_direct_audio_is_limited_to_audio_capable_models(self):
         d = decide(Task("audio", needs_modalities=frozenset({"text", "audio"})))

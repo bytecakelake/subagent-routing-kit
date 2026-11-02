@@ -1,5 +1,5 @@
 {
-  "collected_at": "2026-10-30",
+  "collected_at": "2026-11-02",
   "models": {
     "anthropic/claude-haiku-5.5": {
       "context_tokens": 1000000,
@@ -53,6 +53,23 @@
       "supported_efforts": [
         "xhigh",
         "high",
+        "none"
+      ],
+      "supports_reasoning": true,
+      "supports_tools": true
+    },
+    "deepseek/deepseek-v4-pro-0813": {
+      "context_tokens": 1048576,
+      "free": false,
+      "input_modalities": [
+        "text"
+      ],
+      "long_context_surcharge_tokens": null,
+      "reasoning_mandatory": false,
+      "supported_efforts": [
+        "max",
+        "high",
+        "low",
         "none"
       ],
       "supports_reasoning": true,
@@ -133,6 +150,22 @@
       "supports_reasoning": true,
       "supports_tools": true
     },
+    "qwen/qwen3.8-2.4t-a95b": {
+      "context_tokens": 1048576,
+      "free": false,
+      "input_modalities": [
+        "text"
+      ],
+      "long_context_surcharge_tokens": null,
+      "reasoning_mandatory": true,
+      "supported_efforts": [
+        "xhigh",
+        "medium",
+        "low"
+      ],
+      "supports_reasoning": true,
+      "supports_tools": true
+    },
     "qwen/qwen3.8-flash": {
       "context_tokens": 1000000,
       "free": false,
@@ -159,6 +192,22 @@
       "long_context_surcharge_tokens": null,
       "reasoning_mandatory": false,
       "supported_efforts": null,
+      "supports_reasoning": true,
+      "supports_tools": true
+    },
+    "z-ai/glm-5.3": {
+      "context_tokens": 1048576,
+      "free": false,
+      "input_modalities": [
+        "text"
+      ],
+      "long_context_surcharge_tokens": null,
+      "reasoning_mandatory": true,
+      "supported_efforts": [
+        "max",
+        "high",
+        "low"
+      ],
       "supports_reasoning": true,
       "supports_tools": true
     },
