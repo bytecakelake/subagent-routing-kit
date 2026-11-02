@@ -5,6 +5,7 @@
 allOf, if/then. 지원하지 않는 키워드를 만나면 조용히 통과시키지 않고 예외를 던진다.
 검증을 통과해도 증거나 산출물의 사실 여부는 확인되지 않는다. 그것은 부모가 따로 검증한다.
 """
+import functools
 import json
 import pathlib
 
@@ -30,10 +31,16 @@ def load_schema(path=None):
     return json.loads(pathlib.Path(path or SCHEMA_PATH).read_text(encoding="utf-8"))
 
 
+@functools.lru_cache(maxsize=1)
+def _default_schema():
+    """기본 스키마는 한 번만 읽는다. 호출마다 읽으면 파일 I/O 가 검증 비용을 압도한다(약 5ms 대 17µs)."""
+    return load_schema()
+
+
 def validate(instance, schema=None):
-    """위반 목록을 반환한다. 빈 목록이면 통과."""
+    """위반 목록을 반환한다. 빈 목록이면 통과. 반환 전 스키마를 수정하지 않는다."""
     errors = []
-    _check(instance, schema if schema is not None else load_schema(), "$", errors)
+    _check(instance, schema if schema is not None else _default_schema(), "$", errors)
     return errors
 
 
