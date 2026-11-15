@@ -70,3 +70,4 @@ docs/                      설계·근거·검증 기록
 - 2026-10-30: 순서 4 완료. `core/eligibility`(하드 규칙 판정기)와 `core/catalog/build_capabilities.py`(모델 능력 수집) 구현, 단위 테스트 63개 통과. 규칙을 일부러 망가뜨린 변형 7개를 모두 검출함. 구현 중 쓰기 범위가 저장소 전체(`.`)인 작업이 충돌로 판정되지 않던 결함을 발견해 수정함.
 - 2026-10-30: 순서 3 완료. `build_variants.py`(데이터 정의·규칙 검증·내보내기·설치본 검사·문서 생성이 한 파일)를 분리함. 데이터 원본은 `core/spec/variant-specs.json`, 내보내기는 `adapters/hermes/export_model_map.py`(core 판정기 사용), 설치본 검사는 `adapters/hermes/validate_installed.py`. 기존 `model-map-proposal.json`을 바이트 단위로 재현하는 것을 합격 기준으로 삼아 통과함. 계획 문서 자동 생성은 제거(수동 관리). 단위 테스트 76개.
 - 남은 작업: 순서 5(두 번째 어댑터 검증). 이것이 끝나기 전에는 "범용"이라고 주장하지 않는다.
+- 2026-11-16: Codex 어댑터 구현(`adapters/codex`, 순서 5의 일부). `core/` 무변경. 실제 `codex@0.169.0` 의 마켓플레이스 add·plugin add·훅 발견 확인, 훅 발동·Windows 는 미검증. 사용 규칙·한계는 `adapters/codex/README.md`.

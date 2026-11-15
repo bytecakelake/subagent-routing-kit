@@ -14,7 +14,8 @@
 | 경로의 실호출 검증 | 기존 17경로 전수 통과(오픈웨이트 6경로는 **미검증**, 적용 후 실호출 필요)(응답·도구 왕복·구조화 출력·시각 판독). 형식 편차 2건은 `docs/validation/live-probe-plan.md` 에 기록. 근거 `docs/validation/live-probes-20261030.json`. 품질·비용·지연은 **미측정** |
 | 전용 결정 모델(Jev 등) 하이브리드 라우팅 | 설계만 있음. 정확도와 절감 효과는 **미측정** |
 | 하드 규칙 판정기 (`core/eligibility`) | 구현 완료. **런타임 연결 플러그인** `adapters/hermes/plugin/routing-guard` 가 `delegate_task` 실행 전에 위반 경로를 차단. 테스트 112개 통과(판정기·가드·내보내기 포함) |
-| 두 번째 어댑터 | **없음**. 그러므로 중립성은 아직 한 환경에서만 확인된 상태 |
+| Codex 어댑터 (`adapters/codex`) | 플러그인(스킬 + `spawn_agent` PreToolUse 훅) 구현. `codex@0.169.0` 로 격리 HOME 에서 로컬 마켓플레이스 add·plugin add·훅 발견(미신뢰 상태)까지 실제 확인. **실제 훅 발동은 미검증**, 최종 모델은 확정하지 않고 자격 불명은 기본 차단. 범위와 한계는 `adapters/codex/README.md` |
+| 두 번째 어댑터 | 위 Codex 어댑터가 `core/` 수정 없이 붙음. 다만 "범용" 완료 정의(`docs/architecture.md`)는 아직 미충족 |
 
 역할 배정은 운영 가설이며 측정된 성능 순위가 아닙니다. 모델 가격과 외부 평가 지표는 2026-10-30 시점의 OpenRouter 공개 메타데이터이며 변경될 수 있습니다.
 
@@ -31,6 +32,7 @@ core/                         에이전트 중립 (종속 용어 금지, 자동 
   cliutil.py                  명령줄 공통: typer 앱 생성, pydantic 인자 검증 (오류는 종료 코드 2)
 adapters/
   hermes/                     Hermes용 스킬, model_map 내보내기·검사, 스킬 동기화
+  codex/                      Codex 플러그인(로컬 마켓플레이스), 능력 스냅샷 수집, 동기화
 docs/                         설계, 조사 근거, 검증 기록
 tests/                        단위 테스트 (unittest)
 tools/                        저장소 검사 스크립트

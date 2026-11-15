@@ -125,3 +125,9 @@ adapters/codex/
 
 - 2026-11-16: 범위를 전체 포팅으로 확정. 공식 문서 조사 완료(플러그인 포맷, 훅 스키마, 서브에이전트
   스폰 도구 이름, 네이티브 설정 축 차이, 모델 능력 스냅샷). PR 1 착수.
+- 2026-11-16 (Codex 구현 정정): 위 조사 중 다음은 구현 과정에서 실제 CLI(`@openai/codex@0.169.0`)와 공식 문서로 바로잡았다.
+  (1) 모델 스냅샷은 `gpt-5.1-codex-max` 1개가 아니라 `codex debug models --bundled` 의 노출 9개 모델이다(`adapters/codex/model-capabilities.json`).
+  (2) 이 샌드박스에서도 `npm exec @openai/codex@0.169.0` 로 CLI 를 받아 마켓플레이스 add·plugin add·훅 발견을 실제로 수행했다("바이너리 없음" 한계 해소). 훅 발동은 모델 호출이 필요해 여전히 미검증.
+  (3) 훅 설정은 최상위 `hooks` 래퍼가 필요하고, 설치된 비관리 훅은 `/hooks` 신뢰 전에는 실행되지 않는다.
+  (4) `spawn_agent` 는 V1(`fork_context`)/V2(`task_name`, `fork_turns`)의 필드가 다르고 `model`/`reasoning_effort` 가 숨겨질 수 있으며, custom agent 가 모델을 나중에 덮어쓸 수 있어 최종 모델은 확정하지 않는다. V2 의 훅 도구 이름이 `collaborationspawn_agent` 로 보고되는 이슈가 있어 matcher 는 `spawn_agent|Agent`.
+  (5) 프로젝트 탐지는 훅 입력의 `cwd` 를 쓴다.
