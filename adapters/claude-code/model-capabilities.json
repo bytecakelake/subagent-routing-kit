@@ -1,0 +1,95 @@
+{
+  "collected_at": "2026-11-16",
+  "source": {
+    "note": "Native Claude Code model aliases and full model IDs. Not the OpenRouter catalog used by core/spec/model-capabilities.json.",
+    "urls": [
+      "https://code.claude.com/docs/en/model-config",
+      "https://platform.claude.com/docs/en/models/overview",
+      "https://platform.claude.com/docs/en/build-with-claude/effort",
+      "https://platform.claude.com/docs/en/build-with-claude/context-windows"
+    ]
+  },
+  "schema": 1,
+  "models": {
+    "opus": {
+      "context_tokens": 1000000,
+      "input_modalities": ["text", "image"],
+      "supports_tools": true,
+      "supports_reasoning": true,
+      "reasoning_mandatory": true,
+      "supported_efforts": ["low", "medium", "high", "xhigh", "max"],
+      "long_context_surcharge_tokens": null,
+      "free": false
+    },
+    "claude-opus-5-5": {
+      "context_tokens": 1000000,
+      "input_modalities": ["text", "image"],
+      "supports_tools": true,
+      "supports_reasoning": true,
+      "reasoning_mandatory": true,
+      "supported_efforts": ["low", "medium", "high", "xhigh", "max"],
+      "long_context_surcharge_tokens": null,
+      "free": false
+    },
+    "sonnet": {
+      "context_tokens": 1000000,
+      "input_modalities": ["text", "image"],
+      "supports_tools": true,
+      "supports_reasoning": true,
+      "reasoning_mandatory": true,
+      "supported_efforts": ["low", "medium", "high", "xhigh", "max"],
+      "long_context_surcharge_tokens": null,
+      "free": false
+    },
+    "claude-sonnet-5-5": {
+      "context_tokens": 1000000,
+      "input_modalities": ["text", "image"],
+      "supports_tools": true,
+      "supports_reasoning": true,
+      "reasoning_mandatory": true,
+      "supported_efforts": ["low", "medium", "high", "xhigh", "max"],
+      "long_context_surcharge_tokens": null,
+      "free": false
+    },
+    "haiku": {
+      "context_tokens": 1000000,
+      "input_modalities": ["text", "image"],
+      "supports_tools": true,
+      "supports_reasoning": true,
+      "reasoning_mandatory": true,
+      "supported_efforts": ["low", "medium", "high", "xhigh", "max"],
+      "long_context_surcharge_tokens": null,
+      "free": false
+    },
+    "claude-haiku-5-5": {
+      "context_tokens": 1000000,
+      "input_modalities": ["text", "image"],
+      "supports_tools": true,
+      "supports_reasoning": true,
+      "reasoning_mandatory": true,
+      "supported_efforts": ["low", "medium", "high", "xhigh", "max"],
+      "long_context_surcharge_tokens": null,
+      "free": false
+    },
+    "fable": {
+      "context_tokens": 1000000,
+      "input_modalities": ["text", "image"],
+      "supports_tools": true,
+      "supports_reasoning": true,
+      "reasoning_mandatory": true,
+      "supported_efforts": ["low", "medium", "high", "xhigh", "max"],
+      "long_context_surcharge_tokens": null,
+      "free": false
+    },
+    "claude-fable-5-2": {
+      "context_tokens": 1000000,
+      "input_modalities": ["text", "image"],
+      "supports_tools": true,
+      "supports_reasoning": true,
+      "reasoning_mandatory": true,
+      "supported_efforts": ["low", "medium", "high", "xhigh", "max"],
+      "long_context_surcharge_tokens": null,
+      "free": false
+    }
+  }
+}
