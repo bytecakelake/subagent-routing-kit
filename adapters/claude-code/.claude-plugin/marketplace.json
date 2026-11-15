@@ -1,0 +1,12 @@
+{
+  "name": "subagent-routing-kit-local",
+  "description": "Local marketplace that lists the subagent-routing-kit Claude Code plugin.",
+  "owner": { "name": "BCL" },
+  "plugins": [
+    {
+      "name": "subagent-routing-kit",
+      "source": "./plugin/subagent-routing-kit",
+      "description": "Hard-rule guard and delegation policy for Agent/Task subagent calls."
+    }
+  ]
+}

@@ -70,3 +70,11 @@ docs/                      설계·근거·검증 기록
 - 2026-10-30: 순서 4 완료. `core/eligibility`(하드 규칙 판정기)와 `core/catalog/build_capabilities.py`(모델 능력 수집) 구현, 단위 테스트 63개 통과. 규칙을 일부러 망가뜨린 변형 7개를 모두 검출함. 구현 중 쓰기 범위가 저장소 전체(`.`)인 작업이 충돌로 판정되지 않던 결함을 발견해 수정함.
 - 2026-10-30: 순서 3 완료. `build_variants.py`(데이터 정의·규칙 검증·내보내기·설치본 검사·문서 생성이 한 파일)를 분리함. 데이터 원본은 `core/spec/variant-specs.json`, 내보내기는 `adapters/hermes/export_model_map.py`(core 판정기 사용), 설치본 검사는 `adapters/hermes/validate_installed.py`. 기존 `model-map-proposal.json`을 바이트 단위로 재현하는 것을 합격 기준으로 삼아 통과함. 계획 문서 자동 생성은 제거(수동 관리). 단위 테스트 76개.
 - 남은 작업: 순서 5(두 번째 어댑터 검증). 이것이 끝나기 전에는 "범용"이라고 주장하지 않는다.
+- 2026-11-16: 순서 5 착수. Claude Code를 두 번째 어댑터로 확정하고 구현(`adapters/claude-code/`).
+  공식 문서로 플러그인/훅 포맷을 확인(`docs/claude-codex-adapter-plan.md`). 중립성 확인: `core/`
+  수정 없이 어댑터만 추가해 `.claude/agents/*.md` 를 스캔하는 `PreToolUse` 훅으로 하드 규칙을
+  적용함 — "범용성 판단 기준" 3항(어댑터 추가에 core 수정 불필요)을 처음으로 실증. 단, Claude Code의
+  네이티브 서브에이전트 설정에는 추론강도 필드가 없어 그 축의 하드 규칙은 구조적으로 적용 불가함을
+  확인하고 README에 명시(규칙을 느슨하게 만든 것이 아니라 플랫폼에 그 축이 없다는 사실의 반영).
+  Codex(세 번째 어댑터)는 별도 PR. `claude` 바이너리가 없는 샌드박스에서 작성해 실제 설치 검증은
+  남아 있음.
