@@ -9,6 +9,7 @@
       "https://platform.claude.com/docs/en/build-with-claude/context-windows"
     ]
   },
+  "alias_note": "Entries named opus/sonnet/haiku/fable are the aliases as they resolve on the Anthropic API on collected_at (Opus 5.5, Sonnet 5.5, Haiku 5.5, Fable 5.2). On other providers the same alias can resolve to an older model (e.g. Bedrock: Sonnet 4.5, Haiku 4.5; Foundry: Opus 4.6), whose context/effort values may differ, and ANTHROPIC_DEFAULT_*_MODEL can repoint it. The guard cannot observe the provider or those variables, so alias rows are an Anthropic-API approximation, not the effective model.",
   "schema": 1,
   "models": {
     "opus": {

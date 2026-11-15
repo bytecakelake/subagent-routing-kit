@@ -8,13 +8,14 @@ and scope decisions: `docs/claude-codex-adapter-plan.md` (repo root).
 adapters/claude-code/
   model-capabilities.json   원본 네이티브 모델 능력 스냅샷 (Hermes 의 core/spec/model-capabilities.json
                              에 대응하지만 Claude 모델 별칭/ID 기준. 수집일·출처 포함)
+  .claude-plugin/marketplace.json  로컬 마켓플레이스 (루트 = 이 디렉터리, source ./plugin/subagent-routing-kit)
   sync_plugin.py             core/eligibility, 스냅샷, core/policy 를 plugin/ 사본으로 복사
   plugin/subagent-routing-kit/
     .claude-plugin/plugin.json
-    hooks/hooks.json         PreToolUse, matcher "Agent"/"Task"
+    hooks/hooks.json         {"hooks": {"PreToolUse": ...}} (wrapper required), matcher "Agent|Task"
     guard_hook.py             훅 진입점 (stdin JSON -> stdout 판정 JSON)
-    guard.py                  순수 판정 로직 (.claude/agents/*.md 스캔 -> Route -> core 판정)
-    agent_frontmatter.py      최소 YAML frontmatter 파서 (표준 라이브러리만)
+    guard.py                  순수 판정 로직 (관측 가능한 model/effort 만 core 판정에 전달)
+    agent_frontmatter.py      YAML frontmatter 부분집합 파서 + 파싱 불가 파일 건너뛰기 (표준 라이브러리만)
     eligibility_rules.py      core/eligibility/rules.py 사본 (sync_plugin.py 로 동기화)
     capabilities.json         model-capabilities.json 사본
     skills/subagent-orchestration/SKILL.md

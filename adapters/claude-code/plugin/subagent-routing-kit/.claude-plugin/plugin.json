@@ -2,7 +2,7 @@
   "name": "subagent-routing-kit",
   "displayName": "Subagent Routing Kit",
   "version": "0.1.0",
-  "description": "Hard-rule guard and delegation policy for Agent/Task subagent calls, ported from the agent-neutral subagent-routing-kit core. Blocks calls whose declared model has no capability-snapshot entry or fails a hard rule. The reasoning-effort axis is not enforced: Claude Code's native agent format has no field for it. See the bundled README for the full list of what this does and does not check.",
+  "description": "Hard-rule guard and delegation policy for Agent/Task subagent calls, ported from the agent-neutral subagent-routing-kit core. Blocks calls whose observable model has no capability-snapshot entry or whose observable effort is not advertised for that model. Agents the hook cannot see (built-in, managed, CLI, plugin) and omitted/inherited models are not judged. See the bundled README for the full list of what this does and does not check.",
   "author": { "name": "BCL" },
   "license": "Apache-2.0",
   "homepage": "https://github.com/bytecakelake/subagent-routing-kit",

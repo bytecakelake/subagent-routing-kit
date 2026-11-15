@@ -29,21 +29,19 @@ that are actually structural (see below), the rest is advisory.
 
 ## Claude Code facts to check
 
-- **Pick the subagent with `subagent_type`.** It must match a `name:` declared in a
-  `.claude/agents/*.md` file (project or `~/.claude/agents/`), or a built-in agent type. This repo's
-  routing guard (`hooks/hooks.json` in this plugin) blocks calls to names it cannot find in either
-  directory — built-in types without a file are a known false positive the guard cannot resolve
-  (no official list of built-in names was confirmed when this adapter was written; see
-  `docs/claude-codex-adapter-plan.md` in the kit's own repo).
-- **The agent's `model:` field is the only per-agent override Claude Code exposes.** There is no
-  per-agent reasoning-effort field — effort is a session-wide `/effort` setting, not a route property.
-  Do not invent a `reasoning_effort:` frontmatter key; Claude Code ignores it and the routing guard
-  does not check it for this reason.
-- **A per-call `model` override on the `Agent` tool call beats the agent file's own `model:`.** The
-  guard checks whichever one actually applies.
-- **Omitted `model:` inherits the session's current model.** The guard cannot validate what that
-  resolves to and treats it as `inherit` (unknown model) — strict mode blocks it, because the actual
-  model at run time is not knowable from the call alone.
+- **Pick the subagent with `subagent_type`.** It is a `name:` from `.claude/agents/**/*.md` or
+  `~/.claude/agents/`, or a built-in (`Explore`, `Plan`, `general-purpose`, ...), a managed, `--agents`
+  or plugin agent (`plugin:agent`). The routing guard in this plugin can only read agent files, so it
+  never blocks an unfamiliar name as "unregistered"; it judges only an observable `model`/`effort`.
+- **Per-agent effort is supported.** Set `effort:` in the agent frontmatter (`low`, `medium`, `high`,
+  `xhigh`, `max`; levels depend on the model); Claude Code >= v2.1.292 also accepts a per-invocation
+  `effort`. It overrides the session level, but `CLAUDE_CODE_EFFORT_LEVEL` overrides both. Without it,
+  the subagent uses the session level on the main model. Do not invent a `reasoning_effort:` key.
+- **Model precedence:** per-call `model` (alias only) > the agent file's `model:` (alias, full ID or
+  `inherit`) > `CLAUDE_CODE_SUBAGENT_MODEL` > the main conversation's model. Aliases resolve per
+  provider, so `sonnet` is not the same model everywhere.
+- **Omitted/`inherit` `model:` is not judged by the guard.** The effective model depends on the
+  session, environment and provider, which the hook cannot see; do not assume it resolved to anything.
 - **Children cannot ask questions or re-delegate.** Have them return unclear requirements as a
   blocker instead of guessing.
 - **Validation through an existing agent definition is not live-call validation of a new one.** Never
@@ -52,18 +50,19 @@ that are actually structural (see below), the rest is advisory.
 ## Procedure
 
 1. Follow steps 1-8 in `references/orchestration-policy.md`.
-2. Pick the subagent by matching `subagent_type` exactly against a declared `.claude/agents/*.md`
-   `name:`. If none fits, create one or report `activation_required`.
+2. Pick the subagent by matching `subagent_type` exactly against an agent you know exists. If none
+   fits, create an agent file or report `activation_required`.
 3. Write each child contract with `templates/task-contract.md`.
 
 ## What the hard-rule guard in this plugin does and does not check
 
-Enforced: the chosen `subagent_type` is declared somewhere in `.claude/agents/`, and its effective
-model has a capability-snapshot entry (`capabilities.json` in this plugin, ported from
-`core/spec/model-capabilities.json`'s methodology but for Claude's own model aliases).
-Not enforced (platform has no native field for it, or the hook call carries no such information):
-reasoning effort, modality/tool requirements per task, input length / long-context surcharge,
-free-to-paid fallback (Claude Code has no free-tier model concept). Full rationale:
+Enforced, when observable: the call's `model` override (else the discovered agent file's `model:`)
+has a capability-snapshot entry (`capabilities.json` in this plugin, for Claude's own aliases and
+IDs), and an observable `effort` is in that model's `supported_efforts`.
+Not enforced: whether the subagent exists (built-in/managed/CLI/plugin agents are invisible to the
+hook), an omitted/`inherit` model, a missing effort, provider-specific alias resolution,
+modality/tool requirements per task, input length / long-context surcharge, free-to-paid fallback.
+Full rationale:
 `docs/claude-codex-adapter-plan.md` in the subagent-routing-kit repo.
 
 ## Sync

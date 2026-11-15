@@ -45,7 +45,8 @@ def run(payload: dict, env: dict) -> Optional[dict]:
     tool_input = payload.get("tool_input") or {}
     project_dir = env.get("CLAUDE_PROJECT_DIR") or os.getcwd()
     home_dir = env.get("HOME") or env.get("USERPROFILE") or ""
-    agents = guard.discover_agents(guard.agent_search_dirs(project_dir, home_dir))
+    cwd = str(payload.get("cwd") or "") or None
+    agents = guard.discover_agents(guard.agent_search_dirs(project_dir, home_dir, cwd))
     caps_path = pathlib.Path(env.get("ROUTING_GUARD_CAPABILITIES_PATH") or (_DIR / "capabilities.json"))
     caps = _load_caps(caps_path)
     strict = _bool_env("ROUTING_GUARD_STRICT_UNKNOWN_MODEL", True) if "ROUTING_GUARD_STRICT_UNKNOWN_MODEL" not in env \
