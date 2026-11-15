@@ -1,0 +1,20 @@
+{
+  "name": "subagent-routing-kit",
+  "interface": {
+    "displayName": "Subagent Routing Kit"
+  },
+  "plugins": [
+    {
+      "name": "subagent-routing-kit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/subagent-routing-kit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

@@ -14,8 +14,9 @@
 | 경로의 실호출 검증 | 기존 17경로 전수 통과(오픈웨이트 6경로는 **미검증**, 적용 후 실호출 필요)(응답·도구 왕복·구조화 출력·시각 판독). 형식 편차 2건은 `docs/validation/live-probe-plan.md` 에 기록. 근거 `docs/validation/live-probes-20261030.json`. 품질·비용·지연은 **미측정** |
 | 전용 결정 모델(Jev 등) 하이브리드 라우팅 | 설계만 있음. 정확도와 절감 효과는 **미측정** |
 | 하드 규칙 판정기 (`core/eligibility`) | 구현 완료. **런타임 연결 플러그인** `adapters/hermes/plugin/routing-guard` 가 `delegate_task` 실행 전에 위반 경로를 차단. 테스트 112개 통과(판정기·가드·내보내기 포함) |
-| 두 번째 어댑터 (Claude Code) | `adapters/claude-code/` 구현 완료(`.claude/agents/*.md` 를 스캔해 등록 여부·모델 능력을 판정하는 `PreToolUse` 훅 플러그인 + 정책 스킬). 단위 테스트 18개 통과. **`claude` 바이너리가 없는 샌드박스에서 작성해 실제 설치로는 미검증** (`docs/claude-codex-adapter-plan.md`). 추론강도 축은 플랫폼에 그 필드가 없어 의도적으로 미적용 |
-| 세 번째 어댑터 (Codex) | 설계는 `docs/claude-codex-adapter-plan.md` 에 있음. 구현은 별도 PR |
+| 두 번째 어댑터 (Claude Code) | `adapters/claude-code/` 구현 완료(`.claude/agents/*.md` 를 스캔해 등록 여부·모델 능력을 판정하는 `PreToolUse` 훅 플러그인 + 정책 스킬). 단위 테스트 46개 통과. 실제 `claude@2.1.325` 로 `claude plugin validate` 통과(플러그인·마켓플레이스 모두). 추론강도는 에이전트 파일의 `effort:`·호출별 `effort`를 실제로 검사하나, 훅이 보지 못하는 내장·managed·`--agents`·플러그인 에이전트와 상속된 모델은 판정하지 않음 |
+| 세 번째 어댑터 (Codex) | `adapters/codex/` 구현 완료(플러그인: 스킬 + `spawn_agent` PreToolUse 훅). `codex@0.169.0` 로 격리 HOME 에서 로컬 마켓플레이스 add·plugin add·훅 발견(미신뢰 상태)까지 실제 확인. **실제 훅 발동은 미검증**, 최종 모델은 확정하지 않고 자격 불명은 기본 차단. 범위와 한계는 `adapters/codex/README.md` |
+| 두 어댑터 공통 | `core/` 수정 없이 추가됨 — "범용성 판단 기준" 3항을 두 환경에서 실증. 다만 "범용" 완료 정의(`docs/architecture.md`)는 아직 미충족(세 환경 모두에서 신뢰 전제 없이 전체 하드 규칙이 적용되는 사례가 아직 없음) |
 
 역할 배정은 운영 가설이며 측정된 성능 순위가 아닙니다. 모델 가격과 외부 평가 지표는 2026-10-30 시점의 OpenRouter 공개 메타데이터이며 변경될 수 있습니다.
 
@@ -33,6 +34,7 @@ core/                         에이전트 중립 (종속 용어 금지, 자동 
 adapters/
   hermes/                      Hermes용 스킬, model_map 내보내기·검사, 스킬 동기화
   claude-code/                 Claude Code 플러그인(Agent/Task PreToolUse 훅 + 정책 스킬), 네이티브 모델 능력 스냅샷
+  codex/                       Codex 플러그인(로컬 마켓플레이스, spawn_agent PreToolUse 훅), 능력 스냅샷 수집, 동기화
 docs/                         설계, 조사 근거, 검증 기록
 tests/                        단위 테스트 (unittest)
 tools/                        저장소 검사 스크립트

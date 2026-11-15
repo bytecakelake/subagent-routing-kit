@@ -1,0 +1,14 @@
+{
+  "name": "subagent-routing-kit",
+  "version": "0.1.0",
+  "description": "Subagent delegation policy skill plus a PreToolUse hook that checks spawn_agent model and reasoning effort against a Codex capability snapshot.",
+  "license": "Apache-2.0",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Subagent Routing Kit",
+    "shortDescription": "Delegation policy and a spawn_agent model/effort guard",
+    "longDescription": "Bundles a delegation-policy skill and a PreToolUse hook. The hook checks the model and reasoning effort requested for spawn_agent (and any matching custom agent file) against a snapshot of the Codex CLI's bundled model catalog. The hook must be reviewed and trusted in /hooks before it runs.",
+    "category": "Productivity",
+    "capabilities": ["Read"]
+  }
+}
