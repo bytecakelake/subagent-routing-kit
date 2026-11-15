@@ -25,7 +25,7 @@
   `CLAUDE_PLUGIN_ROOT`/`CLAUDE_PLUGIN_DATA`도 환경변수로 넘긴다.
 - **서브에이전트 스폰 도구 이름이 두 CLI에서 `Agent`로 일치한다.** Claude Code는 `Task` 도구를
   v2.1.63에서 `Agent`로 이름을 바꾸고 `Task(...)`를 별칭으로 유지. Codex는 로컬 함수 도구
-  `spawn_agent`가 매처 별칭 `Agent`에도 걸린다. 따라서 두 훅 모두 `matcher: "Agent"`로 설치한다.
+  `spawn_agent`가 매처 별칭 `Agent`에도 걸린다. 따라서 두 훅 모두 `Agent`(Claude Code 는 `Agent|Task`)를 매처로 설치한다.
 - **Skills(`SKILL.md`)는 세 환경(Hermes/Claude Code/Codex) 모두 동일 포맷으로 읽는다.** 이식 위험이
   가장 낮은 구성요소.
 
@@ -34,17 +34,24 @@
 | 축 | Claude Code `.claude/agents/*.md` frontmatter | Codex `.codex/agents/*.toml` |
 |---|---|---|
 | 모델 | `model:` (별칭 opus/sonnet/haiku/fable 또는 전체 ID) | `model` |
-| 추론 강도 | **필드 없음** (강도는 세션 전역 `/effort`·`--effort`로만 설정, 에이전트별 고정 불가) | `model_reasoning_effort` (에이전트별 고정 가능) |
+| 추론 강도 | `effort:` 필드 (`low`/`medium`/`high`/`xhigh`/`max`, 모델별로 가능한 단계가 다름) + 호출별 `effort` 파라미터(v2.1.292+). `CLAUDE_CODE_EFFORT_LEVEL` 환경변수가 둘 다 이긴다 | `model_reasoning_effort` (에이전트별 고정 가능) |
 | 서비스 티어 | 개념 없음 | 개념 없음 |
 | 무료→유료 폴백 | 개념 없음 (구독/API 과금, OpenRouter류 무료 모델 없음) | 개념 없음 |
 
-**결론**: Codex는 `core/eligibility`의 추론강도 규칙(`effort_implicit`/`effort_unadvertised`/
-`effort_cannot_disable`)까지 의미 있게 적용된다. Claude Code는 네이티브 포맷에 그 축 자체가 없으므로
-해당 규칙은 **구조적으로 항상 통과**시키고(막아도 사용자가 고칠 방법이 없음), README에 공식 문서
-인용과 함께 "미지원 아님, 플랫폼에 그 축이 없음"으로 명시한다. 서비스 티어·무료 폴백 축은 둘 다
-없으므로 모든 네이티브 경로의 `service_tier`를 `"normal"`로 고정해 해당 규칙을 무해화한다(검사는
-돌지만 항상 통과). 모달리티·도구·컨텍스트초과 규칙은 `delegate_task`와 마찬가지로 `tool_input`에
-입력 길이 정보가 없어 길이 기반 규칙은 경고 없이 건너뛴다(Hermes routing-guard와 동일한 한계).
+**결론 (2026-11-16 재확인으로 정정)**: 두 CLI 모두 에이전트별 추론 강도를 지원한다. Claude Code
+어댑터는 훅에서 **관측되는** `effort`(에이전트 파일 `effort:` 또는 호출 파라미터)만 `supported_efforts`로
+검사(`effort_unadvertised`)한다. 강도 *미지정*(`effort_implicit`)은 세션 수준으로 폴백하므로 막지 않는다
+(어댑터 고유 면제, core 규칙은 그대로). 환경변수 `CLAUDE_CODE_EFFORT_LEVEL`·세션 `/effort`는 훅에서
+보이지 않으므로 실효 강도를 보증하지 않는다. 서비스 티어·무료 폴백 축은 두 CLI에 없으므로 모든 네이티브
+경로의 `service_tier`를 `"normal"`로 고정해 해당 규칙을 무해화한다. 길이 기반 규칙은 `tool_input`에 입력
+길이가 없어 건너뛴다(Hermes routing-guard와 동일한 한계).
+
+**관측 가능성 (정정)**: 빌트인(`Explore`/`Plan`/`general-purpose` 등), 관리형, `--agents`, 플러그인 에이전트는
+훅이 파일로 찾을 수 없다. 따라서 "미등록 → 차단"은 하지 않는다. `model` 생략/`inherit`의 실효 모델도
+세션·`CLAUDE_CODE_SUBAGENT_MODEL`·공급자에 따라 달라 판정하지 않는다. `opus`/`sonnet`/`haiku` 별칭은
+공급자별로 다른 모델로 해석된다(스냅샷은 Anthropic API 기준 근사). 훅 `hooks/hooks.json`은 최상위
+`"hooks"` 래퍼가 필수이며(`claude plugin validate` 2.1.325 로 확인), 마켓플레이스 루트는
+`adapters/claude-code/`(`.claude-plugin/marketplace.json`)다.
 
 ### 네이티브 모델 능력 스냅샷 (수집, 출처 명시)
 
@@ -87,7 +94,7 @@ adapters/claude-code/
   sync_plugin.py                # core/eligibility/rules.py + 스냅샷 + 스킬을 플러그인 사본으로 복사
   plugin/subagent-routing-kit/
     .claude-plugin/plugin.json
-    hooks/hooks.json            # PreToolUse, matcher "Agent"
+    hooks/hooks.json            # {"hooks": {"PreToolUse": ...}}, matcher "Agent|Task"
     guard_hook.py                # 훅 진입점 (stdin JSON 읽기 → 종료코드/JSON 출력)
     guard.py                     # 순수 로직 (에이전트 파일 스캔 → Route 목록 → core 판정)
     agent_frontmatter.py         # 최소 YAML frontmatter 파서 (표준 라이브러리만, 스칼라 key: value 한정)

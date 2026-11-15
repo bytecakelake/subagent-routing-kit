@@ -1,0 +1,17 @@
+{
+  "description": "Blocks Agent/Task calls whose observable model or effort violates the subagent-routing-kit hard rules.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/guard_hook.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
