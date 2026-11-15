@@ -1,0 +1,15 @@
+{
+  "description": "Blocks Agent/Task calls that violate the subagent-routing-kit hard rules.",
+  "PreToolUse": [
+    {
+      "matcher": "^(Agent|Task)$",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 \"$CLAUDE_PLUGIN_ROOT/guard_hook.py\"",
+          "timeout": 10
+        }
+      ]
+    }
+  ]
+}

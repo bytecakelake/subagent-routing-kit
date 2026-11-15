@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/bytecakaleke/subagent-routing-kit/core/spec/output-contract.schema.json",
+  "title": "Subagent output contract",
+  "description": "Result a child agent returns to its parent. Required fields are only those the parent reads to decide the next step. A schema pass does not verify that evidence or artifacts are true; the parent checks those separately.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "result", "evidence", "unresolved"],
+  "properties": {
+    "status": {
+      "description": "Overall outcome. completed: acceptance criteria met. partial: some done, rest in unresolved. blocked: cannot proceed, reason in unresolved.",
+      "type": "string",
+      "enum": ["completed", "partial", "blocked"]
+    },
+    "end": {
+      "description": "Optional termination reason, matching the End field of the task contract.",
+      "type": "string",
+      "enum": [
+        "criteria met",
+        "insufficient evidence",
+        "permission/environment blocker",
+        "assigned scope exhausted"
+      ]
+    },
+    "result": {
+      "description": "Short summary of the key result.",
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence": {
+      "description": "What was verified and where. Empty only when nothing could be verified; then status must not be completed.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path_or_url", "check"],
+        "properties": {
+          "path_or_url": {"type": "string", "minLength": 1},
+          "check": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "artifacts": {
+      "description": "Paths of files created or changed.",
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "checks": {
+      "description": "Checks or test commands that were run, with their outcome.",
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "unresolved": {
+      "description": "Open questions, blockers, and the minimum information needed to continue. Must be non-empty when status is partial or blocked.",
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "scope_changes": {
+      "description": "Deviations from the assigned read/write scope, if any.",
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "completed"}}, "required": ["status"]},
+      "then": {"properties": {"evidence": {"minItems": 1}}}
+    },
+    {
+      "if": {"properties": {"status": {"enum": ["partial", "blocked"]}}, "required": ["status"]},
+      "then": {"properties": {"unresolved": {"minItems": 1}}}
+    }
+  ]
+}
